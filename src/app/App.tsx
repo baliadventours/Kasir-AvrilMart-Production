@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Download } from "lucide-react";
 import { MobileNav } from "./components/mobile-nav";
 import { POSInterface } from "./components/pos-interface";
 import { InventoryManager } from "./components/inventory-manager";
@@ -48,6 +49,38 @@ export default function App() {
   const [showMobileMenuDrawer, setShowMobileMenuDrawer] = useState(false);
   const [isCheckingSession, setIsCheckingSession] = useState(true);
   const [loginError, setLoginError] = useState<string | null>(null);
+  const [isPWAInstalled, setIsPWAInstalled] = useState(false);
+
+  // Check if app is installed / standalone
+  useEffect(() => {
+    const checkInstalledStatus = () => {
+      const isStandalone = window.matchMedia('(display-mode: standalone)').matches || 
+                           (navigator as any).standalone;
+      setIsPWAInstalled(!!isStandalone);
+    };
+    checkInstalledStatus();
+
+    const mediaMatcher = window.matchMedia('(display-mode: standalone)');
+    const handleMediaChange = (e: MediaQueryListEvent) => {
+      setIsPWAInstalled(e.matches);
+    };
+    
+    if (mediaMatcher.addEventListener) {
+      mediaMatcher.addEventListener('change', handleMediaChange);
+    }
+
+    const handleAppInstalled = () => {
+      setIsPWAInstalled(true);
+    };
+    window.addEventListener('appinstalled', handleAppInstalled);
+
+    return () => {
+      if (mediaMatcher.removeEventListener) {
+        mediaMatcher.removeEventListener('change', handleMediaChange);
+      }
+      window.removeEventListener('appinstalled', handleAppInstalled);
+    };
+  }, []);
 
   // Offline sync hooks
   const offlineSync = useOfflineSync();
@@ -551,6 +584,35 @@ export default function App() {
                   )}
                 </button>
               ))}
+
+              {/* Install PWA Option Card for Mobile */}
+              {!isPWAInstalled && (
+                <div className="mt-4 mx-1 p-4 bg-gradient-to-br from-orange-50 to-amber-50 border border-orange-200/60 rounded-2xl shadow-sm">
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <span className="text-xl">📲</span>
+                    <p className="text-xs font-bold text-gray-900">
+                      Pasang Aplikasi PWA
+                    </p>
+                  </div>
+                  <p className="text-[11px] text-gray-600 mb-3 leading-normal">
+                    Pasang Avril Mart di layar utama HP Anda untuk akses instan dan dukungan offline yang lebih stabil!
+                  </p>
+                  <button
+                    onClick={() => {
+                      setShowMobileMenuDrawer(false);
+                      if ((window as any).triggerPWAInstall) {
+                        (window as any).triggerPWAInstall();
+                      } else {
+                        window.dispatchEvent(new CustomEvent('trigger-pwa-install'));
+                      }
+                    }}
+                    className="w-full py-2 px-3 bg-[#E05D43] hover:bg-[#C54D33] text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all shadow-md shadow-orange-100 active:scale-95"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    <span>Pasang Sekarang</span>
+                  </button>
+                </div>
+              )}
             </nav>
 
             {/* Logout */}
