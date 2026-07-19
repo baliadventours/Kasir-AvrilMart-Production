@@ -122,6 +122,11 @@ export function BarcodeScannerModal({
           };
         },
         aspectRatio: 1.777778, // Widescreen 16:9
+        videoConstraints: {
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+          facingMode: "environment"
+        },
         experimentalFeatures: {
           useBarCodeDetectorIfSupported: true // Native hardware decoding when available (ultra-fast & sensitive!)
         }
@@ -135,21 +140,9 @@ export function BarcodeScannerModal({
         // Safe to ignore frame decoding failures
       };
 
-      // Request HD resolution (1280x720 or 1920x1080) so barcode lines are clearly defined
-      // without needing to bring the phone too close (which causes focus blur)
-      const optimalConstraints = {
-        deviceId: { exact: cameraId },
-        width: { min: 1024, ideal: 1280, max: 1920 },
-        height: { min: 576, ideal: 720, max: 1080 },
-        advanced: [
-          { focusMode: "continuous" },
-          { exposureMode: "continuous" }
-        ]
-      };
-
       scanner
         .start(
-          optimalConstraints as any,
+          cameraId,
           config,
           onSuccess,
           onError
@@ -169,33 +162,9 @@ export function BarcodeScannerModal({
           }
         })
         .catch((err) => {
-          console.warn("Could not start camera with high-resolution constraints, trying fallback camera ID...", err);
-          // Bulletproof fallback to simple camera ID
-          scanner
-            .start(
-              cameraId,
-              config,
-              onSuccess,
-              onError
-            )
-            .then(() => {
-              setIsLoading(false);
-              try {
-                const state = scanner.getRunningTrackCameraCapabilities();
-                if (state && (state as any).torch) {
-                  setHasFlash(true);
-                } else {
-                  setHasFlash(false);
-                }
-              } catch (e) {
-                console.warn("Could not retrieve camera capabilities:", e);
-              }
-            })
-            .catch((fallbackErr) => {
-              console.error("Failed to start scanner with fallback camera ID:", fallbackErr);
-              setErrorMsg("Gagal mengaktifkan kamera. Pastikan kamera tidak digunakan oleh aplikasi lain.");
-              setIsLoading(false);
-            });
+          console.error("Failed to start html5-qrcode scanner:", err);
+          setErrorMsg("Gagal mengaktifkan kamera. Pastikan kamera tidak digunakan oleh aplikasi lain.");
+          setIsLoading(false);
         });
     } catch (err) {
       console.error("Html5Qrcode initialization error:", err);
