@@ -1,5 +1,6 @@
 import { X, Printer } from "lucide-react";
 import { AppSettings } from "../types";
+import { toTitleCase } from "../../utils/helpers";
 
 interface ThermalReceiptProps {
   sale: {
@@ -136,7 +137,7 @@ export function ThermalReceipt({
             <div className="space-y-3 mb-4 pb-3 border-b border-dashed border-gray-400">
               {sale.items.map((item, index) => (
                 <div key={index} className="text-xs">
-                  <div className="font-semibold text-gray-900">{item.product_name}</div>
+                  <div className="font-semibold text-gray-900">{toTitleCase(item.product_name)}</div>
                   <div className="flex justify-between text-gray-600 mt-1">
                     <span>
                       {item.quantity} x Rp {item.price.toLocaleString("id-ID")}
@@ -307,7 +308,7 @@ export function ThermalReceipt({
           <div style={{ marginBottom: "10px" }}>
             {sale.items.map((item, index) => (
               <div key={index} style={{ marginBottom: "8px" }}>
-                <div style={{ fontWeight: "bold" }}>{item.product_name}</div>
+                <div style={{ fontWeight: "bold" }}>{toTitleCase(item.product_name)}</div>
                 <div
                   style={{
                     display: "flex",

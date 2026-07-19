@@ -5,6 +5,7 @@ import { Product } from "../types";
 import { CSVImport } from "./csv-import";
 import { toast } from "sonner";
 import { BarcodeScannerModal } from "./barcode-scanner-modal";
+import { toTitleCase } from "../../utils/helpers";
 
 interface InventoryManagerProps {
   products: Product[];
@@ -126,8 +127,9 @@ export function InventoryManager({
       ? products.find(p => p.id === editingId)?.sku || `${finalCategory.substring(0, 3).toUpperCase()}-${Date.now()}`
       : `${finalCategory.substring(0, 3).toUpperCase()}-${Date.now()}`;
     
+    const formattedName = toTitleCase(formData.name.trim());
     const productData = {
-      name: formData.name,
+      name: formattedName,
       priceRetail: parseFloat(formData.priceRetail),
       priceWholesale: parseFloat(formData.priceWholesale),
       priceModal: parseFloat(formData.priceModal) || 0,
@@ -142,12 +144,12 @@ export function InventoryManager({
     try {
       if (editingId) {
         onUpdateProduct(editingId, productData);
-        toast.success(`✅ Produk "${formData.name}" berhasil diupdate!`, {
+        toast.success(`✅ Produk "${formattedName}" berhasil diupdate!`, {
           duration: 3000,
         });
       } else {
         onAddProduct(productData);
-        toast.success(`✅ Produk "${formData.name}" berhasil ditambahkan!`, {
+        toast.success(`✅ Produk "${formattedName}" berhasil ditambahkan!`, {
           duration: 3000,
         });
       }

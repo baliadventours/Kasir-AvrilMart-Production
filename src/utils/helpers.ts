@@ -1,10 +1,23 @@
 import { Product } from "../app/types";
 
+// Helper to convert any string to Title Case
+export function toTitleCase(str: string): string {
+  if (!str) return "";
+  return str
+    .toLowerCase()
+    .split(/\s+/)
+    .map((word) => {
+      if (!word) return "";
+      return word.charAt(0).toUpperCase() + word.slice(1);
+    })
+    .join(" ");
+}
+
 // Convert database product (snake_case) to frontend product (camelCase)
 export function dbToFrontendProduct(dbProduct: any): Product {
   return {
     id: dbProduct.id,
-    name: dbProduct.name,
+    name: dbProduct.name ? toTitleCase(dbProduct.name) : "",
     sku: dbProduct.sku,
     barcode: dbProduct.barcode || null,
     category: dbProduct.category,
@@ -25,7 +38,7 @@ export function dbToFrontendProduct(dbProduct: any): Product {
 // Convert frontend product (camelCase) to database product (snake_case)
 export function frontendToDbProduct(product: Partial<Product>): any {
   const dbProduct: any = {
-    name: product.name,
+    name: product.name ? toTitleCase(product.name) : undefined,
     sku: product.sku,
     // Send null (not empty string) for missing barcode — DB unique constraint allows multiple NULLs
     barcode: product.barcode?.trim() || null,
