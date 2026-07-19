@@ -1,0 +1,6 @@
+{
+  "name": "Posavril",
+  "description": "A feature-rich Point of Sale (POS) and inventory management system designed for retail and dining.",
+  "requestFramePermissions": ["camera"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

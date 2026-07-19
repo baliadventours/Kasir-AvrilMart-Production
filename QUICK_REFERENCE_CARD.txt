@@ -1,0 +1,374 @@
+╔═══════════════════════════════════════════════════════════════╗
+║                 AVRIL MART POS - QUICK REFERENCE              ║
+║                    Kintamani - Bali                           ║
+╚═══════════════════════════════════════════════════════════════╝
+
+┌───────────────────────────────────────────────────────────────┐
+│                        🔑 LOGIN                               │
+└───────────────────────────────────────────────────────────────┘
+
+URL: https://avril-mart-[nama-toko].vercel.app
+
+Admin Login:
+  Email: admin@tokoanda.com
+  Password: [your-admin-password]
+
+Kasir Login:
+  Email: kasir@tokoanda.com
+  Password: [kasir-password]
+
+
+┌───────────────────────────────────────────────────────────────┐
+│                    🛒 PROCESS SALE (POS)                      │
+└───────────────────────────────────────────────────────────────┘
+
+1. Search Product:
+   ▸ Type nama produk di search bar
+   ▸ OR scan barcode
+   ▸ Pilih dari list produk
+
+2. Add to Cart:
+   ▸ Click "Add to Cart"
+   ▸ Produk masuk ke cart di kanan
+
+3. Choose Price Type:
+   ▸ Click "Eceran" untuk harga retail
+   ▸ Click "Grosir" untuk harga wholesale
+   ▸ Harga otomatis adjust
+
+4. Enter Payment:
+   ▸ Lihat Total di bottom
+   ▸ Input jumlah pembayaran
+   ▸ Kembalian auto-calculate
+
+5. Process Payment:
+   ▸ Click "Process Payment"
+   ▸ Stok otomatis berkurang
+   ▸ Transaksi tersimpan
+
+6. Print Receipt:
+   ▸ Receipt preview otomatis muncul
+   ▸ Click "Print" / Ctrl+P
+   ▸ Pilih printer thermal (80mm)
+   ▸ Print receipt untuk customer
+
+
+┌───────────────────────────────────────────────────────────────┐
+│                  📦 ADD PRODUCT (Admin Only)                  │
+└───────────────────────────────────────────────────────────────┘
+
+Method 1 - Manual (1 produk):
+  1. Click "Inventory" di sidebar
+  2. Click "Tambah Produk"
+  3. Fill form:
+     ▸ Nama Produk
+     ▸ Kategori (pilih atau buat baru)
+     ▸ Harga Eceran (Retail)
+     ▸ Harga Grosir (Wholesale)
+     ▸ Harga Modal (optional)
+     ▸ Stock (jumlah unit)
+     ▸ Barcode (optional)
+  4. Click "Add Product"
+  5. ✅ Produk ditambahkan!
+
+Method 2 - CSV Import (bulk):
+  1. Click "Inventory" di sidebar
+  2. Click "Import CSV"
+  3. Select CSV file (format: products_template.csv)
+  4. Click "Import"
+  5. Wait for processing
+  6. ✅ Check results (success/partial/failed)
+
+
+┌───────────────────────────────────────────────────────────────┐
+│                   🔍 SEARCH PRODUCT                           │
+└───────────────────────────────────────────────────────────────┘
+
+POS Interface:
+  ▸ Type di search box (top)
+  ▸ Search by: nama, SKU, barcode
+  ▸ OR use kategori filter (hamburger menu)
+
+Inventory Management:
+  ▸ Type di search box
+  ▸ Search by: nama, SKU, barcode, kategori
+  ▸ Table auto-filter
+  ▸ Result counter shows jumlah hasil
+
+
+┌───────────────────────────────────────────────────────────────┐
+│                   📊 VIEW REPORTS (Admin Only)                │
+└───────────────────────────────────────────────────────────────┘
+
+Sales History:
+  1. Click "Sales" di sidebar
+  2. See all transactions
+  3. Filter by date range
+  4. Click transaction untuk detail
+  5. Export to CSV if needed
+
+Reports:
+  1. Click "Reports" di sidebar
+  2. View revenue summary
+  3. See sales by price type
+  4. Check daily/weekly/monthly stats
+
+
+┌───────────────────────────────────────────────────────────────┐
+│                   💾 BACKUP DATABASE (Weekly)                 │
+└───────────────────────────────────────────────────────────────┘
+
+1. Click "Inventory" di sidebar
+2. Scroll to top
+3. Click "Backup Database" button
+4. JSON file auto-download
+5. Save to safe location (cloud storage recommended)
+6. Keep backup for disaster recovery
+
+Filename: avril-mart-backup-[timestamp].json
+Contains: All products + metadata
+
+
+┌───────────────────────────────────────────────────────────────┐
+│                   👥 ADD USER (Admin Only)                    │
+└───────────────────────────────────────────────────────────────┘
+
+1. Click "Users" di sidebar
+2. Click "Tambah User"
+3. Fill form:
+   ▸ Nama: Full name
+   ▸ Email: Unique email
+   ▸ Password: Min 6 chars (12 recommended)
+   ▸ Role: Pilih "Kasir" atau "Administrator"
+4. Click "Tambah User"
+5. ✅ User created, bisa langsung login!
+
+
+┌───────────────────────────────────────────────────────────────┐
+│                   🔌 OFFLINE MODE                             │
+└───────────────────────────────────────────────────────────────┘
+
+When Internet Down:
+  ✅ App masih bisa digunakan
+  ✅ Data tersimpan di local storage
+  ✅ Semua fitur POS tetap jalan
+  ✅ Offline indicator muncul (top right)
+
+When Back Online:
+  ✅ Data auto-sync ke server
+  ✅ Sync status notification muncul
+  ✅ All transactions updated
+  ✅ Conflict resolution automatic
+
+
+┌───────────────────────────────────────────────────────────────┐
+│                   🆘 TROUBLESHOOTING                          │
+└───────────────────────────────────────────────────────────────┘
+
+❌ Can't Login:
+  → Check email/password correct
+  → Check caps lock off
+  → Try forgot password
+  → Contact admin
+
+❌ Product Not Found:
+  → Check spelling
+  → Use barcode scanner
+  → Check product exists in inventory
+  → Ask admin to add product
+
+❌ Print Not Working:
+  → Check printer ON
+  → Check paper loaded
+  → Check USB/Bluetooth connection
+  → Try Print Preview first (Ctrl+P)
+  → Check printer selected (80mm thermal)
+
+❌ Stok Habis:
+  → Cannot add to cart
+  → Check inventory for stock level
+  → Contact admin to restock
+  → Use search to find alternative
+
+❌ App Loading Slow:
+  → Check internet connection
+  → Clear browser cache
+  → Reload page (F5)
+  → Check other tabs closed
+
+❌ Offline Mode Stuck:
+  → Check internet connection
+  → Click sync button manually
+  → Wait for auto-sync (every 30s)
+  → Reload page if needed
+
+
+┌───────────────────────────────────────────────────────────────┐
+│                   ⌨️ KEYBOARD SHORTCUTS                       │
+└───────────────────────────────────────────────────────────────┘
+
+Global:
+  F5 / Ctrl+R      = Reload page
+  Ctrl+P           = Print receipt/page
+  Esc              = Close modal
+  Tab              = Next field
+  Shift+Tab        = Previous field
+
+POS Interface:
+  Ctrl+F           = Focus search box
+  Enter            = Add to cart (when product selected)
+  Ctrl+Enter       = Process payment (when ready)
+
+Inventory:
+  Ctrl+N           = New product
+  Ctrl+S           = Save product
+  Ctrl+F           = Focus search
+
+
+┌───────────────────────────────────────────────────────────────┐
+│                   🚨 EMERGENCY CONTACTS                       │
+└───────────────────────────────────────────────────────────────┘
+
+Admin:
+  Name: [Administrator Name]
+  Phone: [Phone Number]
+  Email: admin@tokoanda.com
+
+Technical Support:
+  Supabase: https://supabase.com/support
+  Vercel: https://vercel.com/support
+  Documentation: Check README.md & FAQ.md
+
+Backup Location:
+  [Cloud storage link or local path]
+
+
+┌───────────────────────────────────────────────────────────────┐
+│                   📅 MAINTENANCE SCHEDULE                     │
+└───────────────────────────────────────────────────────────────┘
+
+Daily:
+  □ Check app is working
+  □ Monitor for errors
+
+Weekly:
+  □ Backup database (Friday afternoon)
+  □ Check low stock alerts
+  □ Review sales reports
+
+Monthly:
+  □ Review user accounts
+  □ Check for price updates
+  □ Clear old data if needed
+
+
+┌───────────────────────────────────────────────────────────────┐
+│                   💡 PRO TIPS                                 │
+└───────────────────────────────────────────────────────────────┘
+
+✨ Use barcode scanner untuk speed
+✨ Use kategori filter untuk quick access
+✨ Backup database setiap minggu!
+✨ Train staff dengan dummy transactions dulu
+✨ Keep printer paper stocked
+✨ Monitor low stock alerts daily
+✨ Use "Grosir" untuk bulk buyers (discount)
+✨ Check reports weekly untuk insights
+✨ Log out saat shift selesai
+✨ Clear browser cache kalau slow
+
+
+┌───────────────────────────────────────────────────────────────┐
+│                   🔐 SECURITY REMINDERS                       │
+└───────────────────────────────────────────────────────────────┘
+
+✅ DO:
+  ✓ Use strong passwords (min 12 chars)
+  ✓ Log out after shift
+  ✓ Keep passwords secret
+  ✓ Lock computer when away
+  ✓ Report suspicious activity
+  ✓ Backup database regularly
+
+❌ DON'T:
+  ✗ Share login credentials
+  ✗ Use simple passwords
+  ✗ Leave computer unlocked
+  ✗ Write passwords on paper
+  ✗ Let others use your account
+
+
+┌───────────────────────────────────────────────────────────────┐
+│                   📱 MOBILE ACCESS                            │
+└───────────────────────────────────────────────────────────────┘
+
+Install as App (PWA):
+  1. Open URL di mobile browser
+  2. Click "Share" / Menu (⋮)
+  3. Select "Add to Home Screen"
+  4. Icon appears on home screen
+  5. Open like native app!
+
+Advantages:
+  ✓ Works offline
+  ✓ Faster access
+  ✓ No browser UI
+  ✓ Full screen mode
+
+
+╔═══════════════════════════════════════════════════════════════╗
+║                    📞 QUICK DIAL                              ║
+║                                                               ║
+║  Admin Phone: _____________________                          ║
+║  Tech Support: _____________________                         ║
+║  Supplier: _____________________                             ║
+║  Manager: _____________________                              ║
+╚═══════════════════════════════════════════════════════════════╝
+
+
+╔═══════════════════════════════════════════════════════════════╗
+║                    VERSION INFO                               ║
+║                                                               ║
+║  App Version: 1.0                                            ║
+║  Last Updated: 27 Februari 2026                              ║
+║  Print Date: [___________]                                   ║
+║  Valid For: Avril Mart - Kintamani, Bali                     ║
+╚═══════════════════════════════════════════════════════════════╝
+
+
+════════════════════════════════════════════════════════════════
+                    🎯 DAILY CHECKLIST
+════════════════════════════════════════════════════════════════
+
+Morning (Start of Shift):
+  □ Login dengan email & password Anda
+  □ Check internet connection
+  □ Check printer ON & paper loaded
+  □ Check barcode scanner connected
+  □ Test print receipt (dummy transaction)
+  □ Ready to serve customers! 🛒
+
+During Shift:
+  □ Process sales dengan friendly service
+  □ Keep workspace clean
+  □ Monitor stock levels
+  □ Report any issues immediately
+  □ Take break when needed
+
+End of Shift:
+  □ Count cash register
+  □ Check pending transactions
+  □ Log out dari app
+  □ Leave notes for next shift
+  □ Lock computer/tablet
+
+
+════════════════════════════════════════════════════════════════
+        PRINT THIS PAGE & POST NEAR POS TERMINAL 📋
+════════════════════════════════════════════════════════════════
+
+      For full documentation, see: README.md & FAQ.md
+
+             ✨ Happy Selling! ✨
+
+════════════════════════════════════════════════════════════════

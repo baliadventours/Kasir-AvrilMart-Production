@@ -1,0 +1,11 @@
+name,sku,barcode,category,retail_price,wholesale_price,modal_price,stock
+Wireless Headphones,WH-001,,Electronics,150000,120000,100000,50
+Smart Watch,SW-002,,Electronics,500000,450000,400000,30
+Coffee Mug,CM-003,,Kitchenware,50000,40000,30000,100
+Notebook Set,NB-004,1234567890,Stationery,75000,60000,50000,80
+Desk Lamp,DL-005,,Furniture,200000,180000,160000,40
+Water Bottle,WB-006,,Kitchenware,35000,28000,22000,120
+Backpack,BP-007,,Bags,250000,220000,200000,60
+USB Cable,UC-008,,Electronics,25000,20000,15000,200
+Mouse Pad,MP-009,,Electronics,45000,35000,28000,90
+Phone Stand,PS-010,,Accessories,80000,70000,60000,75

@@ -1,0 +1,22 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="512" height="512" fill="#E05D43" rx="80"/>
+  
+  <!-- Shopping Bag Icon -->
+  <g transform="translate(128, 128)">
+    <!-- Bag Body -->
+    <path d="M256 128L288 352H32L64 128H256Z" fill="white" stroke="white" stroke-width="8"/>
+    
+    <!-- Bag Handle -->
+    <path d="M96 128V96C96 60.6538 124.654 32 160 32C195.346 32 224 60.6538 224 96V128" 
+          stroke="white" stroke-width="16" stroke-linecap="round" fill="none"/>
+    
+    <!-- Receipt Lines (small) -->
+    <line x1="80" y1="180" x2="240" y2="180" stroke="#E05D43" stroke-width="12" stroke-linecap="round"/>
+    <line x1="80" y1="220" x2="200" y2="220" stroke="#E05D43" stroke-width="12" stroke-linecap="round"/>
+    <line x1="80" y1="260" x2="220" y2="260" stroke="#E05D43" stroke-width="12" stroke-linecap="round"/>
+  </g>
+  
+  <!-- Letter A (for Avril) -->
+  <text x="256" y="420" font-family="Arial, sans-serif" font-weight="bold" font-size="140" fill="white" text-anchor="middle">A</text>
+</svg>

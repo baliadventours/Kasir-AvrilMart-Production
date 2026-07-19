@@ -1,0 +1,62 @@
+[
+  {
+    "column_name": "id",
+    "data_type": "uuid",
+    "is_nullable": "NO"
+  },
+  {
+    "column_name": "name",
+    "data_type": "text",
+    "is_nullable": "NO"
+  },
+  {
+    "column_name": "sku",
+    "data_type": "text",
+    "is_nullable": "NO"
+  },
+  {
+    "column_name": "barcode",
+    "data_type": "text",
+    "is_nullable": "YES"
+  },
+  {
+    "column_name": "category",
+    "data_type": "text",
+    "is_nullable": "NO"
+  },
+  {
+    "column_name": "price_retail",
+    "data_type": "numeric",
+    "is_nullable": "NO"
+  },
+  {
+    "column_name": "price_wholesale",
+    "data_type": "numeric",
+    "is_nullable": "NO"
+  },
+  {
+    "column_name": "price_modal",
+    "data_type": "numeric",
+    "is_nullable": "YES"
+  },
+  {
+    "column_name": "stock",
+    "data_type": "integer",
+    "is_nullable": "NO"
+  },
+  {
+    "column_name": "image",
+    "data_type": "text",
+    "is_nullable": "YES"
+  },
+  {
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "YES"
+  },
+  {
+    "column_name": "updated_at",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "YES"
+  }
+]
