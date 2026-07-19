@@ -107,44 +107,95 @@ export function BarcodeScannerModal({
       const scanner = new Html5Qrcode(containerId);
       scannerRef.current = scanner;
 
-      // Configurations
+      // Highly optimized config
       const config = {
-        fps: 15,
+        fps: 25, // scan faster (default was 15) for immediate recognition
         qrbox: (width: number, height: number) => {
-          // Responsive target box for standard linear barcodes (wider than taller)
-          const boxWidth = Math.min(width * 0.85, 280);
-          const boxHeight = Math.min(height * 0.45, 140);
-          return { x: (width - boxWidth) / 2, y: (height - boxHeight) / 2, width: boxWidth, height: boxHeight };
+          // Responsive larger target box for standard linear barcodes (wider than taller)
+          const boxWidth = Math.min(width * 0.90, 320);
+          const boxHeight = Math.min(height * 0.50, 160);
+          return {
+            x: (width - boxWidth) / 2,
+            y: (height - boxHeight) / 2,
+            width: boxWidth,
+            height: boxHeight
+          };
         },
-        aspectRatio: 1.777778 // Widescreen
+        aspectRatio: 1.777778, // Widescreen 16:9
+        experimentalFeatures: {
+          useBarCodeDetectorIfSupported: true // Native hardware decoding when available (ultra-fast & sensitive!)
+        }
+      };
+
+      const onSuccess = (decodedText: string) => {
+        handleSuccessfulScan(decodedText);
+      };
+
+      const onError = () => {
+        // Safe to ignore frame decoding failures
+      };
+
+      // Request HD resolution (1280x720 or 1920x1080) so barcode lines are clearly defined
+      // without needing to bring the phone too close (which causes focus blur)
+      const optimalConstraints = {
+        deviceId: { exact: cameraId },
+        width: { min: 1024, ideal: 1280, max: 1920 },
+        height: { min: 576, ideal: 720, max: 1080 },
+        advanced: [
+          { focusMode: "continuous" },
+          { exposureMode: "continuous" }
+        ]
       };
 
       scanner
         .start(
-          cameraId,
+          optimalConstraints as any,
           config,
-          (decodedText) => {
-            // Success
-            handleSuccessfulScan(decodedText);
-          },
-          () => {
-            // Verbose error from frame analyzer, safe to ignore
-          }
+          onSuccess,
+          onError
         )
         .then(() => {
           setIsLoading(false);
           // Check for torch/flashlight support
-          const state = scanner.getRunningTrackCameraCapabilities();
-          if (state && (state as any).torch) {
-            setHasFlash(true);
-          } else {
-            setHasFlash(false);
+          try {
+            const state = scanner.getRunningTrackCameraCapabilities();
+            if (state && (state as any).torch) {
+              setHasFlash(true);
+            } else {
+              setHasFlash(false);
+            }
+          } catch (e) {
+            console.warn("Could not retrieve camera capabilities:", e);
           }
         })
         .catch((err) => {
-          console.error("Failed to start html5-qrcode scanner:", err);
-          setErrorMsg("Gagal mengaktifkan kamera. Pastikan kamera tidak digunakan oleh aplikasi lain.");
-          setIsLoading(false);
+          console.warn("Could not start camera with high-resolution constraints, trying fallback camera ID...", err);
+          // Bulletproof fallback to simple camera ID
+          scanner
+            .start(
+              cameraId,
+              config,
+              onSuccess,
+              onError
+            )
+            .then(() => {
+              setIsLoading(false);
+              try {
+                const state = scanner.getRunningTrackCameraCapabilities();
+                if (state && (state as any).torch) {
+                  setHasFlash(true);
+                } else {
+                  setHasFlash(false);
+                }
+              } catch (e) {
+                console.warn("Could not retrieve camera capabilities:", e);
+              }
+            })
+            .catch((fallbackErr) => {
+              console.error("Failed to start scanner with fallback camera ID:", fallbackErr);
+              setErrorMsg("Gagal mengaktifkan kamera. Pastikan kamera tidak digunakan oleh aplikasi lain.");
+              setIsLoading(false);
+            });
         });
     } catch (err) {
       console.error("Html5Qrcode initialization error:", err);
@@ -274,7 +325,7 @@ export function BarcodeScannerModal({
               
               {/* Scan box borders overlay */}
               <div className="absolute inset-0 flex items-center justify-center">
-                <div className="relative w-[280px] h-[140px] border border-white/20 rounded-xl overflow-hidden shadow-[0_0_0_100vmax_rgba(0,0,0,0.65)]">
+                <div className="relative w-[320px] h-[160px] border border-white/20 rounded-xl overflow-hidden shadow-[0_0_0_100vmax_rgba(0,0,0,0.65)]">
                   {/* Laser line animation */}
                   <div className="absolute left-0 right-0 h-0.5 bg-red-500 animate-[bounce_2s_infinite] shadow-[0_0_8px_rgba(239,68,68,0.8)]" />
                   
