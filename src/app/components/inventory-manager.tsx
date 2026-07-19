@@ -102,6 +102,22 @@ export function InventoryManager({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Check if barcode is already registered on another product
+    const trimmedBarcode = formData.barcode?.trim() || null;
+    if (trimmedBarcode) {
+      const barcodeExists = products.some(
+        (p) =>
+          p.barcode?.trim().toLowerCase() === trimmedBarcode.toLowerCase() &&
+          (!editingId || p.id !== editingId)
+      );
+      if (barcodeExists) {
+        toast.error("❌ Barcode sudah terdaftar!", {
+          duration: 4000,
+        });
+        return;
+      }
+    }
+    
     // Use newCategoryName if adding new category
     const finalCategory = isAddingNewCategory ? newCategoryName : formData.category;
     
