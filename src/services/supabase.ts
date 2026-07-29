@@ -9,16 +9,32 @@ if (!supabaseUrl || !supabaseAnonKey) {
   console.error("Missing Supabase environment variables!");
 }
 
-// Create Supabase client — autoRefreshToken disabled so offline startup never
-// triggers a network fetch just to check the session. Tokens still refresh
-// automatically when the user makes an actual API call while online.
+// Create Supabase client — autoRefreshToken enabled so access tokens stay fresh automatically.
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     persistSession: true,       // Keep session in localStorage (survives restart)
-    autoRefreshToken: false,    // Don't auto-refresh on startup (needs network)
+    autoRefreshToken: true,     // Keep tokens fresh automatically across sessions
     detectSessionInUrl: false,  // Not using OAuth redirects
   },
 });
+
+// Helper function to prevent network requests from hanging forever when coming back from idle/sleep
+export async function withTimeout<T>(
+  promiseLike: PromiseLike<T>,
+  timeoutMs = 12000,
+  errorMessage = "Request timed out"
+): Promise<T> {
+  let timeoutId: any;
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    timeoutId = setTimeout(() => reject(new Error(errorMessage)), timeoutMs);
+  });
+  try {
+    const result = await Promise.race([promiseLike, timeoutPromise]);
+    return result;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
 
 
 // Database Types
@@ -65,33 +81,56 @@ export interface SaleItem {
 // ===================================
 
 export const productsAPI = {
-  // Get all products (supports unlimited records with pagination)
+  // Get all products (supports unlimited records with pagination and timeout protection)
   async getAll(): Promise<Product[]> {
     let allProducts: Product[] = [];
     let from = 0;
-    const batchSize = 1000; // Request up to 1000 at a time (will auto-adapt if database Max Rows is lower)
+    const batchSize = 1000; // Request up to 1000 at a time
     let hasMore = true;
+    let retryAttempted = false;
 
     while (hasMore) {
-      const { data, error } = await supabase
-        .from("products")
-        .select("*")
-        .order("name")
-        .range(from, from + batchSize - 1);
+      try {
+        const queryPromise = supabase
+          .from("products")
+          .select("*")
+          .order("name")
+          .range(from, from + batchSize - 1);
 
-      if (error) {
-        console.error("Error fetching products:", error);
-        throw error;
-      }
+        const { data, error } = await withTimeout(
+          queryPromise,
+          12000,
+          "Koneksi timeout saat mengambil data produk"
+        );
 
-      if (data && data.length > 0) {
-        allProducts = [...allProducts, ...data];
-        from += data.length; // Always increment by actual loaded count to handle any truncation
-        
-        // Log progress
-        console.log(`Loaded ${allProducts.length} products...`);
-      } else {
-        hasMore = false;
+        if (error) {
+          console.error("Error fetching products:", error);
+          // If error is related to JWT / auth token expiry, refresh session once and retry
+          if (!retryAttempted && (error.message?.includes("JWT") || error.code === "PGRST301" || (error as any).status === 401)) {
+            console.warn("🔑 Auth token expired, attempting session refresh...");
+            retryAttempted = true;
+            const { data: refreshData } = await supabase.auth.refreshSession();
+            if (refreshData?.session) {
+              continue; // Retry current range iteration
+            }
+          }
+          throw error;
+        }
+
+        if (data && data.length > 0) {
+          allProducts = [...allProducts, ...data];
+          from += data.length;
+          console.log(`Loaded ${allProducts.length} products...`);
+        } else {
+          hasMore = false;
+        }
+      } catch (err: any) {
+        // If query fails on subsequent batch after partial load, return what we have
+        if (allProducts.length > 0) {
+          console.warn(`Returning ${allProducts.length} products loaded before network error:`, err);
+          return allProducts;
+        }
+        throw err;
       }
     }
 
@@ -448,14 +487,34 @@ export const authAPI = {
     }
   },
 
-  // Get current session
+  // Get current session (automatically refreshes token if expired or near expiry)
   async getSession() {
-    const { data, error } = await supabase.auth.getSession();
-    if (error) {
-      console.error("Get session error:", error);
-      throw error;
+    try {
+      const { data, error } = await supabase.auth.getSession();
+      if (error) {
+        console.warn("Get session warning:", error);
+      }
+      
+      let session = data?.session || null;
+
+      if (session) {
+        const expiresAt = session.expires_at;
+        const now = Math.floor(Date.now() / 1000);
+        // If token expires in less than 5 minutes or is already expired, refresh it
+        if (expiresAt && (expiresAt - now < 300)) {
+          console.log("🔄 Session token near expiry or expired, refreshing session...");
+          const { data: refreshData, error: refreshErr } = await supabase.auth.refreshSession();
+          if (!refreshErr && refreshData?.session) {
+            session = refreshData.session;
+          }
+        }
+      }
+
+      return session;
+    } catch (err) {
+      console.warn("Session check error:", err);
+      return null;
     }
-    return data.session;
   },
 
   // Get current user

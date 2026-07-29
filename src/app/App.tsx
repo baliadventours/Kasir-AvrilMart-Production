@@ -107,6 +107,42 @@ export default function App() {
     }
   }, [offlineSync.isOnline, user]);
 
+  // ⚡ Re-check session & sync products when app becomes visible / focused after being idle
+  useEffect(() => {
+    const handleFocusOrVisible = async () => {
+      if (document.visibilityState === "visible") {
+        console.log("👁️ App focused/visible - restoring cache and refreshing session...");
+
+        // Always show cached products immediately if state is empty
+        const cached = localStorage.loadProducts();
+        if (cached && cached.length > 0) {
+          setProducts((prev) => (prev && prev.length > 0 ? prev : cached));
+        }
+
+        if (user) {
+          try {
+            const freshSession = await authAPI.getSession();
+            if (freshSession) {
+              setAccessToken(freshSession.access_token);
+            }
+          } catch (e) {
+            console.warn("Visibility session refresh warning:", e);
+          }
+
+          loadProductsCacheFirst();
+        }
+      }
+    };
+
+    window.addEventListener("focus", handleFocusOrVisible);
+    document.addEventListener("visibilitychange", handleFocusOrVisible);
+
+    return () => {
+      window.removeEventListener("focus", handleFocusOrVisible);
+      document.removeEventListener("visibilitychange", handleFocusOrVisible);
+    };
+  }, [user]);
+
   // Save to localStorage whenever products/sales change
   useEffect(() => {
     if (products.length > 0) {
@@ -204,23 +240,32 @@ export default function App() {
     const cached = localStorage.loadProducts();
     if (cached && cached.length > 0) {
       setProducts(cached);
+      setLoading(false); // Do not stay in loading state if cache is available
     } else {
       setLoading(true);
     }
 
     // 2. Fetch fresh products in the background
     try {
+      // Refresh session token if needed before network fetch
+      await authAPI.getSession().catch(() => null);
+
       const dbProducts = await productsAPI.getForPOS();
-      const frontendProducts = dbProducts.map(dbToFrontendProduct);
-      setProducts(frontendProducts);
-      localStorage.saveProducts(frontendProducts);
-      setError(null);
-    } catch (error: any) {
-      console.error("Error loading products:", error);
-      if (!localStorage.loadProducts()) {
-        setError("Gagal memuat produk: " + error.message);
+      if (dbProducts && Array.isArray(dbProducts)) {
+        const frontendProducts = dbProducts.map(dbToFrontendProduct);
+        setProducts(frontendProducts);
+        localStorage.saveProducts(frontendProducts);
+        setError(null);
       }
-      // If cached data exists, silently use it — user never sees an error
+    } catch (error: any) {
+      console.error("Error loading fresh products from server:", error);
+      const fallbackCached = localStorage.loadProducts();
+      if (fallbackCached && fallbackCached.length > 0) {
+        setProducts(fallbackCached);
+        setError(null); // Keep using cache silently without showing error toast
+      } else {
+        setError("Gagal memuat produk: " + (error.message || "Koneksi terputus"));
+      }
     } finally {
       setLoading(false);
     }
@@ -228,16 +273,30 @@ export default function App() {
 
   // Full product reload (used by Inventory Manager)
   const loadProducts = async () => {
-    try {
+    const cached = localStorage.loadProducts();
+    if (cached && cached.length > 0) {
+      setProducts(cached);
+    } else {
       setLoading(true);
+    }
+
+    try {
+      await authAPI.getSession().catch(() => null);
+
       const dbProducts = await productsAPI.getAll();
       const frontendProducts = dbProducts.map(dbToFrontendProduct);
       setProducts(frontendProducts);
       localStorage.saveProducts(frontendProducts);
       setError(null);
     } catch (error: any) {
-      console.error("Error loading products:", error);
-      setError("Gagal memuat produk: " + error.message);
+      console.error("Error reloading products:", error);
+      const fallbackCached = localStorage.loadProducts();
+      if (fallbackCached && fallbackCached.length > 0) {
+        setProducts(fallbackCached);
+        setError(null);
+      } else {
+        setError("Gagal memuat produk: " + (error.message || "Koneksi terputus"));
+      }
     } finally {
       setLoading(false);
     }
