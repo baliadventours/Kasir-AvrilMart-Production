@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { Plus, Edit2, Trash2, Package, AlertTriangle, Upload, Download, Search, Scan, Database, Trash, Camera } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Plus, Edit2, Trash2, Package, AlertTriangle, Upload, Download, Search, Scan, Database, Trash, Camera, X } from "lucide-react";
 import { supabase } from "../../services/supabase";
 import { Product } from "../types";
 import { CSVImport } from "./csv-import";
@@ -195,10 +195,17 @@ export function InventoryManager({
   const endIndex = startIndex + ITEMS_PER_PAGE;
   const paginatedProducts = filteredProducts.slice(startIndex, endIndex);
 
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
   // Reset to page 1 when search changes
   const handleSearchChange = (value: string) => {
     setSearchTerm(value);
     setCurrentPage(1);
+  };
+
+  const handleClearSearch = () => {
+    handleSearchChange("");
+    searchInputRef.current?.focus();
   };
 
   // Pagination helpers
@@ -455,23 +462,63 @@ export function InventoryManager({
             <div className="flex-1 relative">
               <Search className="absolute left-3 md:left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 md:w-5 h-4 md:h-5" />
               <input
+                ref={searchInputRef}
                 type="text"
                 value={searchTerm}
                 onChange={(e) => handleSearchChange(e.target.value)}
                 placeholder="Cari Produk (Nama, SKU, Barcode, atau Kategori)..."
-                className="w-full pl-10 md:pl-12 pr-10 md:pr-12 py-2.5 md:py-3 text-sm md:text-base border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E05D43] focus:border-transparent"
+                className="w-full pl-10 md:pl-12 pr-20 md:pr-28 py-2.5 md:py-3 text-sm md:text-base border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E05D43] focus:border-transparent"
               />
-              <Scan className="absolute right-3 md:right-4 top-1/2 transform -translate-y-1/2 text-[#E05D43] w-4 md:w-5 h-4 md:h-5" />
+              <div className="absolute right-3 md:right-4 top-1/2 transform -translate-y-1/2 flex items-center gap-1.5">
+                {searchTerm && (
+                  <button
+                    type="button"
+                    onClick={handleClearSearch}
+                    className="p-1 md:px-2 md:py-1 text-gray-600 hover:text-gray-900 bg-gray-100 hover:bg-gray-200 rounded-md transition-all active:scale-95 flex items-center gap-1 text-xs font-semibold"
+                    title="Hapus Pencarian (1-Click Clear)"
+                  >
+                    <X className="w-4 h-4 text-gray-700" />
+                    <span className="hidden sm:inline">Clear</span>
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setIsScannerOpen(true)}
+                  className="p-1 text-[#E05D43] hover:bg-orange-50 rounded-md transition-all"
+                  title="Scan Barcode via Kamera"
+                >
+                  <Scan className="w-4 md:w-5 h-4 md:h-5" />
+                </button>
+              </div>
             </div>
             {searchTerm && (
-              <div className="flex items-center gap-2 bg-[#E05D43] text-white px-3 md:px-4 py-2.5 md:py-3 rounded-lg">
-                <span className="font-medium text-sm">{filteredProducts.length} hasil</span>
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 bg-[#E05D43] text-white px-3 md:px-4 py-2.5 md:py-3 rounded-lg">
+                  <span className="font-medium text-sm">{filteredProducts.length} hasil</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleClearSearch}
+                  className="flex items-center gap-1 bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-2.5 md:py-3 rounded-lg font-semibold text-xs md:text-sm transition-all border border-gray-300 active:scale-95 whitespace-nowrap"
+                  title="Bersihkan pencarian (1-Click Clear)"
+                >
+                  <X className="w-4 h-4" />
+                  <span>Hapus</span>
+                </button>
               </div>
             )}
           </div>
           {searchTerm && filteredProducts.length === 0 && (
-            <div className="mt-3 text-center text-gray-500 text-sm">
-              Tidak ada produk yang cocok dengan pencarian "{searchTerm}"
+            <div className="mt-3 text-center text-gray-500 text-sm flex flex-col items-center gap-2">
+              <span>Tidak ada produk yang cocok dengan pencarian "{searchTerm}"</span>
+              <button
+                type="button"
+                onClick={handleClearSearch}
+                className="px-3 py-1.5 bg-[#E05D43] text-white rounded-lg text-xs font-medium hover:bg-[#C54D33] transition-all flex items-center gap-1"
+              >
+                <X className="w-3.5 h-3.5" />
+                <span>Bersihkan Filter Pencarian</span>
+              </button>
             </div>
           )}
         </div>

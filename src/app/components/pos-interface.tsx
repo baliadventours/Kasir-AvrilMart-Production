@@ -41,9 +41,16 @@ export function POSInterface({ products, settings, onSale }: POSInterfaceProps) 
   const [showCartSheet, setShowCartSheet] = useState(false); // mobile slide-up cart
   const [isScannerOpen, setIsScannerOpen] = useState(false);
   const cartEndRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  const handleClearSearch = () => {
+    setSearchTerm("");
+    searchInputRef.current?.focus();
+  };
 
   const handleCameraScan = (code: string) => {
     setIsScannerOpen(false);
+    setSearchTerm(""); // Reset search term so next search/scan is fresh
     if (!code) return;
 
     // Find product matching the scanned barcode or SKU
@@ -265,22 +272,36 @@ export function POSInterface({ products, settings, onSale }: POSInterfaceProps) 
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
             <input
+              ref={searchInputRef}
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Cari produk / scan barcode…"
-              className="w-full pl-9 pr-12 py-2.5 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#E05D43] focus:border-transparent"
+              className="w-full pl-9 pr-24 py-2.5 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#E05D43] focus:border-transparent"
               onKeyDown={handleBarcodeSearch}
               autoComplete="off"
             />
-            <button
-              type="button"
-              onClick={() => setIsScannerOpen(true)}
-              className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-[#E05D43] hover:bg-orange-50 rounded-xl transition-all active:scale-95"
-              title="Scan Barcode menggunakan Kamera"
-            >
-              <Scan className="w-5 h-5" />
-            </button>
+            <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+              {searchTerm && (
+                <button
+                  type="button"
+                  onClick={handleClearSearch}
+                  className="p-1.5 text-gray-500 hover:text-gray-900 hover:bg-gray-200 bg-gray-100 rounded-lg transition-all active:scale-95 flex items-center gap-1 text-xs"
+                  title="Hapus / Reset Pencarian (1-Click Clear)"
+                >
+                  <X className="w-4 h-4 text-gray-600" />
+                  <span className="hidden sm:inline font-medium text-[11px]">Clear</span>
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => setIsScannerOpen(true)}
+                className="p-2 text-[#E05D43] hover:bg-orange-50 rounded-xl transition-all active:scale-95"
+                title="Scan Barcode menggunakan Kamera"
+              >
+                <Scan className="w-5 h-5" />
+              </button>
+            </div>
           </div>
           <div className="mt-1.5 text-[10px] text-gray-400 text-center">
             {displayedProducts.length} dari {filteredProducts.length} produk
