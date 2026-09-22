@@ -1,15 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, lazy, Suspense } from "react";
 import { Download } from "lucide-react";
 import { MobileNav } from "./components/mobile-nav";
 import { POSInterface } from "./components/pos-interface";
-import { InventoryManager } from "./components/inventory-manager";
-import { SalesHistory } from "./components/sales-history";
 import { Login } from "./components/login";
-import { UserManagement } from "./components/user-management";
-import { CategoryManager } from "./components/category-manager";
-import { Settings } from "./components/settings";
 import { Sidebar } from "./components/sidebar";
-import { Reports } from "./components/reports";
 import { OfflineIndicator } from "./components/offline-indicator";
 import { PWAPrompt } from "./components/pwa-prompt";
 import { Product, CartItem, Sale, AppSettings } from "./types";
@@ -19,6 +13,14 @@ import { useOfflineSync } from "./hooks/useOfflineSync";
 import { useLocalStorage } from "./hooks/useLocalStorage";
 import { testDatabaseSchema, getDatabaseColumns } from "../utils/test-db-schema";
 import { Toaster } from "sonner";
+
+// ⚡ Code-split heavy management views to keep initial load lightweight & fast
+const InventoryManager = lazy(() => import("./components/inventory-manager").then(m => ({ default: m.InventoryManager })));
+const Reports = lazy(() => import("./components/reports").then(m => ({ default: m.Reports })));
+const SalesHistory = lazy(() => import("./components/sales-history").then(m => ({ default: m.SalesHistory })));
+const UserManagement = lazy(() => import("./components/user-management").then(m => ({ default: m.UserManagement })));
+const CategoryManager = lazy(() => import("./components/category-manager").then(m => ({ default: m.CategoryManager })));
+const Settings = lazy(() => import("./components/settings").then(m => ({ default: m.Settings })));
 
 // Expose test functions to window for console access
 if (typeof window !== 'undefined') {
@@ -157,12 +159,25 @@ export default function App() {
   }, [sales]);
 
   const checkSession = async () => {
+    // 🔌 If offline, restore session immediately from local cache with zero network wait
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      const cachedUser = localStorage.loadUser();
+      if (cachedUser) {
+        console.log("📦 Offline mode: Loaded cached user session");
+        setUser(cachedUser);
+      }
+      setIsCheckingSession(false);
+      return;
+    }
+
     try {
-      const session = await authAPI.getSession();
+      // Race session check with a fast 1500ms safety timeout to prevent slow network from blocking UI
+      const sessionPromise = authAPI.getSession();
+      const timeoutPromise = new Promise<null>((resolve) => setTimeout(() => resolve(null), 1500));
+      const session = await Promise.race([sessionPromise, timeoutPromise]);
 
       if (session?.user) {
         // ✅ Use session.user directly — no extra network call needed.
-        // Supabase stores the session in localStorage, so this works offline too.
         const u = session.user;
         const userData = {
           id: u.id,
@@ -245,12 +260,23 @@ export default function App() {
       setLoading(true);
     }
 
-    // 2. Fetch fresh products in the background
-    try {
-      // Refresh session token if needed before network fetch
-      await authAPI.getSession().catch(() => null);
+    // 🔌 If offline, keep cached data and do not attempt network fetch
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      setLoading(false);
+      return;
+    }
 
-      const dbProducts = await productsAPI.getForPOS();
+    // 2. Fetch fresh products in the background with progressive first-batch rendering
+    try {
+      const dbProducts = await productsAPI.getForPOS((firstBatch) => {
+        // If we didn't have cached data, render the first batch immediately!
+        if (!cached || cached.length === 0) {
+          const frontendBatch = firstBatch.map(dbToFrontendProduct);
+          setProducts(frontendBatch);
+          setLoading(false);
+        }
+      });
+
       if (dbProducts && Array.isArray(dbProducts)) {
         const frontendProducts = dbProducts.map(dbToFrontendProduct);
         setProducts(frontendProducts);
@@ -264,7 +290,9 @@ export default function App() {
         setProducts(fallbackCached);
         setError(null); // Keep using cache silently without showing error toast
       } else {
-        setError("Gagal memuat produk: " + (error.message || "Koneksi terputus"));
+        if (navigator.onLine) {
+          setError("Gagal memuat produk: " + (error.message || "Koneksi terputus"));
+        }
       }
     } finally {
       setLoading(false);
@@ -707,24 +735,31 @@ export default function App() {
 
         {/* Page Content */}
         <main className={activeMenu === "pos" ? "h-[100dvh] overflow-hidden" : "pt-4 pb-20 md:pb-6 px-4 md:px-6 bg-gray-50 min-h-screen"}>
-          {activeMenu === "pos" && <POSInterface products={products} settings={settings} onSale={handleSale} />}
-          {activeMenu === "inventory" && canAccessInventory && (
-            <InventoryManager
-              products={products}
-              onAddProduct={handleAddProduct}
-              onUpdateProduct={handleUpdateProduct}
-              onDeleteProduct={handleDeleteProduct}
-              onRefresh={loadProducts}
-            />
-          )}
-          {activeMenu === "sales" && canAccessSales && (() => { if (!salesLoaded) loadSales(); return <SalesHistory sales={sales} />; })()}
-          {activeMenu === "reports" && canAccessSales && (() => { if (!salesLoaded) loadSales(); return <Reports sales={sales} />; })()}
+          <Suspense fallback={
+            <div className="flex flex-col items-center justify-center min-h-[300px] text-gray-500 gap-3">
+              <div className="w-8 h-8 border-3 border-[#E05D43] border-t-transparent rounded-full animate-spin"></div>
+              <p className="text-xs">Memuat halaman...</p>
+            </div>
+          }>
+            {activeMenu === "pos" && <POSInterface products={products} settings={settings} onSale={handleSale} />}
+            {activeMenu === "inventory" && canAccessInventory && (
+              <InventoryManager
+                products={products}
+                onAddProduct={handleAddProduct}
+                onUpdateProduct={handleUpdateProduct}
+                onDeleteProduct={handleDeleteProduct}
+                onRefresh={loadProducts}
+              />
+            )}
+            {activeMenu === "sales" && canAccessSales && (() => { if (!salesLoaded) loadSales(); return <SalesHistory sales={sales} />; })()}
+            {activeMenu === "reports" && canAccessSales && (() => { if (!salesLoaded) loadSales(); return <Reports sales={sales} />; })()}
 
-          {activeMenu === "users" && canAccessUsers && (
-            <UserManagement accessToken={accessToken || ""} />
-          )}
-          {activeMenu === "categories" && <CategoryManager />}
-          {activeMenu === "settings" && <Settings settings={settings} onUpdateSettings={handleUpdateSettings} />}
+            {activeMenu === "users" && canAccessUsers && (
+              <UserManagement accessToken={accessToken || ""} />
+            )}
+            {activeMenu === "categories" && <CategoryManager />}
+            {activeMenu === "settings" && <Settings settings={settings} onUpdateSettings={handleUpdateSettings} />}
+          </Suspense>
         </main>
       </div>
     </div>

@@ -81,8 +81,13 @@ export interface SaleItem {
 // ===================================
 
 export const productsAPI = {
-  // Get all products (supports unlimited records with pagination and timeout protection)
-  async getAll(): Promise<Product[]> {
+  // Get all products (supports unlimited records with pagination, fast batch detection, and timeout protection)
+  async getAll(onBatchLoaded?: (batch: Product[], totalLoaded: number) => void): Promise<Product[]> {
+    // If offline, fail immediately so caller can instantly use localStorage cache
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      throw new Error("Offline - Tidak ada koneksi internet");
+    }
+
     let allProducts: Product[] = [];
     let from = 0;
     const batchSize = 1000; // Request up to 1000 at a time
@@ -99,7 +104,7 @@ export const productsAPI = {
 
         const { data, error } = await withTimeout(
           queryPromise,
-          12000,
+          10000,
           "Koneksi timeout saat mengambil data produk"
         );
 
@@ -121,6 +126,16 @@ export const productsAPI = {
           allProducts = [...allProducts, ...data];
           from += data.length;
           console.log(`Loaded ${allProducts.length} products...`);
+          
+          if (onBatchLoaded) {
+            onBatchLoaded(data, allProducts.length);
+          }
+
+          // ⚡ Performance win: If returned less than batchSize, we already reached the end!
+          // Don't make an extra wasteful round-trip.
+          if (data.length < batchSize) {
+            hasMore = false;
+          }
         } else {
           hasMore = false;
         }
@@ -139,8 +154,8 @@ export const productsAPI = {
   },
 
   // Alias for backward compatibility / cached service worker / custom POS calls
-  async getForPOS(): Promise<Product[]> {
-    return this.getAll();
+  async getForPOS(onBatchLoaded?: (batch: Product[], totalLoaded: number) => void): Promise<Product[]> {
+    return this.getAll(onBatchLoaded);
   },
 
   // Get product by ID
@@ -487,9 +502,15 @@ export const authAPI = {
     }
   },
 
-  // Get current session (automatically refreshes token if expired or near expiry)
+  // Get current session (automatically refreshes token if expired or near expiry, with offline & timeout protection)
   async getSession() {
     try {
+      // 🔌 If offline, return immediately from local cache without attempting network refresh
+      if (typeof navigator !== "undefined" && !navigator.onLine) {
+        const { data } = await supabase.auth.getSession();
+        return data?.session || null;
+      }
+
       const { data, error } = await supabase.auth.getSession();
       if (error) {
         console.warn("Get session warning:", error);
@@ -500,12 +521,21 @@ export const authAPI = {
       if (session) {
         const expiresAt = session.expires_at;
         const now = Math.floor(Date.now() / 1000);
-        // If token expires in less than 5 minutes or is already expired, refresh it
+        // If token expires in less than 5 minutes or is already expired, refresh it with timeout
         if (expiresAt && (expiresAt - now < 300)) {
           console.log("🔄 Session token near expiry or expired, refreshing session...");
-          const { data: refreshData, error: refreshErr } = await supabase.auth.refreshSession();
-          if (!refreshErr && refreshData?.session) {
-            session = refreshData.session;
+          try {
+            const refreshPromise = supabase.auth.refreshSession();
+            const { data: refreshData, error: refreshErr } = await withTimeout(
+              refreshPromise,
+              3000,
+              "Session refresh timeout"
+            );
+            if (!refreshErr && refreshData?.session) {
+              session = refreshData.session;
+            }
+          } catch (refreshErr) {
+            console.warn("Session refresh timed out or failed, using existing session:", refreshErr);
           }
         }
       }
