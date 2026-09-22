@@ -40,7 +40,7 @@ export function InventoryManager({
   const [showDeleteAllModal, setShowDeleteAllModal] = useState(false);
   const [deleteAllConfirmText, setDeleteAllConfirmText] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const ITEMS_PER_PAGE = 100;
+  const [itemsPerPage, setItemsPerPage] = useState(25);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -189,10 +189,10 @@ export function InventoryManager({
     );
   });
 
-  // Pagination calculations
-  const totalPages = Math.ceil(filteredProducts.length / ITEMS_PER_PAGE);
-  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-  const endIndex = startIndex + ITEMS_PER_PAGE;
+  // Pagination calculations (defaults to 25 items per page for instant desktop rendering)
+  const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
   const paginatedProducts = filteredProducts.slice(startIndex, endIndex);
 
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -624,9 +624,27 @@ export function InventoryManager({
         
         {/* Pagination */}
         {totalPages > 1 && (
-          <div className="bg-gray-50 px-6 py-3 flex justify-between items-center border-t border-gray-200">
-            <div className="text-sm text-gray-500">
-              Menampilkan {startIndex + 1} - {Math.min(endIndex, filteredProducts.length)} dari {filteredProducts.length} produk
+          <div className="bg-gray-50 px-6 py-3 flex flex-wrap gap-3 justify-between items-center border-t border-gray-200">
+            <div className="flex items-center gap-3 text-sm text-gray-500">
+              <span>
+                Menampilkan {startIndex + 1} - {Math.min(endIndex, filteredProducts.length)} dari {filteredProducts.length} produk
+              </span>
+              <div className="flex items-center gap-1.5 text-xs text-gray-600">
+                <span className="text-gray-400">|</span>
+                <span>Baris:</span>
+                <select
+                  value={itemsPerPage}
+                  onChange={(e) => {
+                    setItemsPerPage(Number(e.target.value));
+                    setCurrentPage(1);
+                  }}
+                  className="bg-white border border-gray-300 rounded px-1.5 py-0.5 text-xs focus:ring-1 focus:ring-[#E05D43]"
+                >
+                  <option value={25}>25</option>
+                  <option value={50}>50</option>
+                  <option value={100}>100</option>
+                </select>
+              </div>
             </div>
             <div className="flex gap-2 items-center">
               <button

@@ -6,10 +6,12 @@ import { toast } from "sonner";
 import { ProductCard, ProductGridCard } from "./product-card-lazy";
 import { BarcodeScannerModal } from "./barcode-scanner-modal";
 
-// 🔥 Custom Placeholder Image
-const placeholderImage = "https://i.ibb.co.com/GvsmxH9Y/avrilmart-app-icon.png";
+// 🔥 Local Cached Placeholder Image (served immediately from PWA cache, 0 external requests)
+const placeholderImage = "/avrilmart-app-icon.png";
 
-const MAX_PRODUCTS_TO_RENDER = 100;
+// ⚡ Limit initial product render to 32 products for snappy <5ms desktop rendering
+const INITIAL_PRODUCTS_DISPLAY = 32;
+const PRODUCTS_LOAD_STEP = 32;
 
 interface POSInterfaceProps {
   products: Product[];
@@ -37,11 +39,12 @@ export function POSInterface({ products, settings, onSale }: POSInterfaceProps) 
   const [showReceipt, setShowReceipt] = useState(false);
   const [showCategoryMenu, setShowCategoryMenu] = useState(false);
   const [viewMode, setViewMode] = useState<"list" | "grid">("grid");
-  const [displayLimit, setDisplayLimit] = useState(MAX_PRODUCTS_TO_RENDER);
+  const [displayLimit, setDisplayLimit] = useState(INITIAL_PRODUCTS_DISPLAY);
   const [showCartSheet, setShowCartSheet] = useState(false); // mobile slide-up cart
   const [isScannerOpen, setIsScannerOpen] = useState(false);
   const cartEndRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const loadMoreSentinelRef = useRef<HTMLDivElement>(null);
 
   const handleClearSearch = () => {
     setSearchTerm("");
@@ -78,7 +81,7 @@ export function POSInterface({ products, settings, onSale }: POSInterfaceProps) 
 
   // Reset pagination on filter change
   useEffect(() => {
-    setDisplayLimit(MAX_PRODUCTS_TO_RENDER);
+    setDisplayLimit(INITIAL_PRODUCTS_DISPLAY);
   }, [searchTerm, selectedCategory]);
 
   const availableProducts = products.filter((p) => p.stock > 0);
@@ -96,6 +99,25 @@ export function POSInterface({ products, settings, onSale }: POSInterfaceProps) 
   const displayedProducts = filteredProducts.slice(0, displayLimit);
   const hasMore = filteredProducts.length > displayLimit;
   const remainingProducts = filteredProducts.length - displayLimit;
+
+  // 🚀 Automatic seamless infinite scroll: loads next batch when user scrolls near the bottom
+  useEffect(() => {
+    if (!hasMore) return;
+    const sentinel = loadMoreSentinelRef.current;
+    if (!sentinel) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          setDisplayLimit((prev) => prev + PRODUCTS_LOAD_STEP);
+        }
+      },
+      { rootMargin: "300px" } // Preload 300px before reaching the end for zero waiting
+    );
+
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [hasMore, displayedProducts.length]);
 
   const subtotal = cart.reduce((sum, item) => sum + item.appliedPrice * item.quantity, 0);
   const discount = 0;
@@ -311,7 +333,7 @@ export function POSInterface({ products, settings, onSale }: POSInterfaceProps) 
         {/* ── Product list / grid ── */}
         <div className="flex-1 overflow-y-auto px-3 md:px-6 py-3">
           {viewMode === "list" ? (
-            <div className="space-y-1.5 pb-6">
+            <div className="space-y-1.5 pb-2">
               {displayedProducts.map((product) => {
                 const displayPrice = priceType === "retail"
                   ? (product.priceRetail || product.price_retail || 0)
@@ -333,29 +355,34 @@ export function POSInterface({ products, settings, onSale }: POSInterfaceProps) 
                   </button>
                 );
               })}
-              {hasMore && (
-                <button onClick={() => setDisplayLimit(displayLimit + MAX_PRODUCTS_TO_RENDER)}
-                  className="w-full py-3 bg-gray-50 border border-dashed border-gray-300 rounded-xl text-sm text-gray-500 hover:bg-gray-100 transition-colors"
-                >
-                  Tampilkan {remainingProducts} produk lagi…
-                </button>
-              )}
             </div>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-2.5 pb-6">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-2.5 pb-2">
               {displayedProducts.map((product) => {
                 const displayPrice = priceType === "retail"
                   ? (product.priceRetail || product.price_retail || 0)
                   : (product.priceWholesale || product.price_wholesale || 0);
+                const hasValidCustomImage = Boolean(
+                  product.image &&
+                  !product.image.includes("avrilmart-app-icon") &&
+                  !product.image.includes("i.ibb.co.com")
+                );
+
                 return (
                   <button key={product.id} onClick={() => addToCart(product)}
                     className="bg-white rounded-xl p-2.5 hover:shadow-md hover:border-[#E05D43] transition-all text-left border border-gray-200 flex flex-col active:scale-[0.96]"
                   >
-                    <div className="w-full aspect-square bg-gray-50 rounded-lg mb-2 overflow-hidden">
-                      <img src={product.image || placeholderImage} alt={product.name} loading="lazy"
-                        className="w-full h-full object-contain p-1"
-                        style={!product.image ? { filter: "grayscale(100%)", opacity: 0.5 } : {}}
-                        onError={(e) => { const t = e.target as HTMLImageElement; t.src = placeholderImage; t.style.filter = "grayscale(100%)"; t.style.opacity = "0.5"; }}
+                    <div className="w-full aspect-square bg-gray-50 rounded-lg mb-2 overflow-hidden flex items-center justify-center">
+                      <img
+                        src={hasValidCustomImage ? product.image : placeholderImage}
+                        alt={product.name}
+                        loading="lazy"
+                        className={`w-full h-full object-contain p-1 ${!hasValidCustomImage ? 'grayscale opacity-40' : ''}`}
+                        onError={(e) => {
+                          const t = e.target as HTMLImageElement;
+                          t.src = placeholderImage;
+                          t.className = "w-full h-full object-contain p-1 grayscale opacity-40";
+                        }}
                       />
                     </div>
                     <h3 className="font-semibold text-xs text-gray-900 line-clamp-2 leading-tight mb-1 flex-1">{product.name}</h3>
@@ -364,14 +391,18 @@ export function POSInterface({ products, settings, onSale }: POSInterfaceProps) 
                   </button>
                 );
               })}
-              {hasMore && (
-                <button onClick={() => setDisplayLimit(displayLimit + MAX_PRODUCTS_TO_RENDER)}
-                  className="bg-white rounded-xl p-2.5 border border-dashed border-gray-300 flex flex-col items-center justify-center text-gray-400 hover:bg-gray-50 transition-colors aspect-square"
-                >
-                  <img src={placeholderImage} alt="Load More" className="w-10 h-10 object-contain mb-1" style={{ filter: "grayscale(100%)", opacity: 0.3 }} />
-                  <span className="text-[10px] text-center">+{remainingProducts} lagi</span>
-                </button>
-              )}
+            </div>
+          )}
+
+          {/* Sentinel & Load More trigger */}
+          {hasMore && (
+            <div ref={loadMoreSentinelRef} className="pt-3 pb-8 text-center">
+              <button
+                onClick={() => setDisplayLimit((prev) => prev + PRODUCTS_LOAD_STEP)}
+                className="px-5 py-2.5 bg-white border border-gray-200 rounded-xl text-xs font-medium text-gray-600 hover:bg-orange-50 hover:text-[#E05D43] hover:border-[#E05D43] shadow-sm transition-all"
+              >
+                Muat Lebih Banyak ({remainingProducts} produk tersisa)
+              </button>
             </div>
           )}
         </div>

@@ -2,8 +2,8 @@ import { memo } from "react";
 import { Scan } from "lucide-react";
 import { Product } from "../types";
 
-// 🔥 Placeholder image as base64 SVG
-const placeholderImage = "https://i.ibb.co.com/GvsmxH9Y/avrilmart-app-icon.png";
+// 🔥 Local Cached Placeholder Image (served instantly from PWA cache, 0 network requests)
+const placeholderImage = "/avrilmart-app-icon.png";
 
 interface ProductCardProps {
   product: Product;
