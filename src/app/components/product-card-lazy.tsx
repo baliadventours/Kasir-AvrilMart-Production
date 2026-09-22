@@ -1,9 +1,6 @@
-import { memo } from "react";
-import { Scan } from "lucide-react";
+import { memo, useState } from "react";
+import { Scan, Package } from "lucide-react";
 import { Product } from "../types";
-
-// 🔥 Local Cached Placeholder Image (served instantly from PWA cache, 0 network requests)
-const placeholderImage = "/avrilmart-app-icon.png";
 
 interface ProductCardProps {
   product: Product;
@@ -59,7 +56,7 @@ export const ProductCard = memo(({ product, priceType, onClick }: ProductCardPro
 
 ProductCard.displayName = "ProductCard";
 
-// 🔥 Grid View Card dengan Lazy Loading Image
+// 🔥 Grid View Card dengan Lazy Loading Image & safe icon fallback
 interface ProductGridCardProps {
   product: Product;
   priceType: "retail" | "wholesale";
@@ -67,23 +64,42 @@ interface ProductGridCardProps {
 }
 
 export const ProductGridCard = memo(({ product, priceType, onClick }: ProductGridCardProps) => {
+  const [imageError, setImageError] = useState(false);
   const retailPrice = product.priceRetail || product.price_retail || 0;
   const wholesalePrice = product.priceWholesale || product.price_wholesale || 0;
   const displayPrice = priceType === "retail" ? retailPrice : wholesalePrice;
+
+  const hasValidImage = Boolean(
+    product.image &&
+    product.image.trim() !== "" &&
+    !product.image.includes("avrilmart-app-icon") &&
+    !product.image.includes("i.ibb.co.com")
+  );
 
   return (
     <button
       onClick={() => onClick(product)}
       className="bg-white rounded-lg p-4 hover:shadow-lg hover:border-[#E05D43] transition-all text-left border border-gray-200 flex flex-col"
     >
-      {/* Product Image with lazy loading */}
-      <div className="w-full aspect-square bg-gray-100 rounded-lg mb-3 overflow-hidden">
-        <img
-          src={product.image || placeholderImage}
-          alt={product.name}
-          loading="lazy"
-          className={`w-full h-full object-cover ${!product.image || product.image === placeholderImage || product.image.includes('unsplash.com') ? 'grayscale opacity-40' : ''}`}
-        />
+      {/* Product Image with lazy loading & clean fallback */}
+      <div className="w-full aspect-square bg-gray-50 rounded-lg mb-3 overflow-hidden flex items-center justify-center">
+        {hasValidImage && !imageError ? (
+          <img
+            src={product.image}
+            alt={product.name}
+            loading="lazy"
+            decoding="async"
+            className="w-full h-full object-contain p-1"
+            onError={() => setImageError(true)}
+          />
+        ) : (
+          <div className="w-full h-full flex flex-col items-center justify-center text-stone-300">
+            <Package className="w-8 h-8 stroke-[1.5]" />
+            <span className="text-[9px] uppercase tracking-wider text-stone-400 mt-1 font-mono">
+              {product.sku}
+            </span>
+          </div>
+        )}
       </div>
       
       {/* Product Info */}

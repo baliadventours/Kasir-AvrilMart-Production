@@ -1,4 +1,4 @@
-import { useState, useEffect, lazy, Suspense } from "react";
+import { useState, useEffect, useRef, lazy, Suspense } from "react";
 import { Download } from "lucide-react";
 import { MobileNav } from "./components/mobile-nav";
 import { POSInterface } from "./components/pos-interface";
@@ -52,6 +52,7 @@ export default function App() {
   const [isCheckingSession, setIsCheckingSession] = useState(true);
   const [loginError, setLoginError] = useState<string | null>(null);
   const [isPWAInstalled, setIsPWAInstalled] = useState(false);
+  const lastVisibilitySyncRef = useRef<number>(0);
 
   // Check if app is installed / standalone
   useEffect(() => {
@@ -109,10 +110,17 @@ export default function App() {
     }
   }, [offlineSync.isOnline, user]);
 
-  // ⚡ Re-check session & sync products when app becomes visible / focused after being idle
+  // ⚡ Re-check session & sync products when app becomes visible / focused after being idle (throttled to 60s)
   useEffect(() => {
     const handleFocusOrVisible = async () => {
       if (document.visibilityState === "visible") {
+        const now = Date.now();
+        // Prevent constant re-fetching if user switches tabs or clicks within 60 seconds
+        if (now - lastVisibilitySyncRef.current < 60000) {
+          return;
+        }
+        lastVisibilitySyncRef.current = now;
+
         console.log("👁️ App focused/visible - restoring cache and refreshing session...");
 
         // Always show cached products immediately if state is empty

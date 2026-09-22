@@ -1,5 +1,5 @@
-import { useState, useRef, useEffect } from "react";
-import { ShoppingCart, Plus, Minus, Trash2, Search, X, Scan, Menu, Grid3x3, List, ChevronUp } from "lucide-react";
+import { useState, useRef, useEffect, memo } from "react";
+import { ShoppingCart, Plus, Minus, Trash2, Search, X, Scan, Menu, Grid3x3, List, ChevronUp, Package } from "lucide-react";
 import { Product, CartItem, AppSettings } from "../types";
 import { ThermalReceipt } from "./thermal-receipt";
 import { toast } from "sonner";
@@ -12,6 +12,66 @@ const placeholderImage = "/avrilmart-app-icon.png";
 // ⚡ Limit initial product render to 32 products for snappy <5ms desktop rendering
 const INITIAL_PRODUCTS_DISPLAY = 32;
 const PRODUCTS_LOAD_STEP = 32;
+
+// 🔥 Memoized Product Grid Item that safely handles missing/broken images without loop or blinking
+const ProductGridItem = memo(({
+  product,
+  displayPrice,
+  onClick,
+}: {
+  product: Product;
+  displayPrice: number;
+  onClick: () => void;
+}) => {
+  const [imageError, setImageError] = useState(false);
+
+  // Check if image is an actual custom valid image URL (not empty, not broken domain, not self-referential)
+  const hasCustomUrl = Boolean(
+    product.image &&
+    product.image.trim() !== "" &&
+    !product.image.includes("avrilmart-app-icon") &&
+    !product.image.includes("i.ibb.co.com")
+  );
+
+  return (
+    <button
+      onClick={onClick}
+      className="bg-white rounded-xl p-2.5 hover:shadow-md hover:border-[#E05D43] transition-all text-left border border-gray-200 flex flex-col active:scale-[0.96] group"
+    >
+      <div className="w-full aspect-square bg-gray-50 rounded-lg mb-2 overflow-hidden flex items-center justify-center relative">
+        {hasCustomUrl && !imageError ? (
+          <img
+            src={product.image}
+            alt={product.name}
+            loading="lazy"
+            decoding="async"
+            className="w-full h-full object-contain p-1 transition-opacity duration-200"
+            onError={() => {
+              // Mark error once, immediately and cleanly switches to the local icon/placeholder
+              setImageError(true);
+            }}
+          />
+        ) : (
+          <div className="w-full h-full flex flex-col items-center justify-center p-2 text-stone-300 group-hover:text-[#E05D43]/60 transition-colors">
+            <Package className="w-8 h-8 stroke-[1.5]" />
+            <span className="text-[9px] uppercase tracking-wider text-stone-400 mt-1 font-mono truncate max-w-[90%]">
+              {product.sku}
+            </span>
+          </div>
+        )}
+      </div>
+      <h3 className="font-semibold text-xs text-gray-900 line-clamp-2 leading-tight mb-1 flex-1">
+        {product.name}
+      </h3>
+      <div className="text-sm font-bold text-[#E05D43]">
+        Rp {displayPrice.toLocaleString("id-ID")}
+      </div>
+      <div className="text-[10px] text-gray-400 mt-0.5 truncate">{product.category}</div>
+    </button>
+  );
+});
+
+ProductGridItem.displayName = "ProductGridItem";
 
 interface POSInterfaceProps {
   products: Product[];
@@ -362,33 +422,14 @@ export function POSInterface({ products, settings, onSale }: POSInterfaceProps) 
                 const displayPrice = priceType === "retail"
                   ? (product.priceRetail || product.price_retail || 0)
                   : (product.priceWholesale || product.price_wholesale || 0);
-                const hasValidCustomImage = Boolean(
-                  product.image &&
-                  !product.image.includes("avrilmart-app-icon") &&
-                  !product.image.includes("i.ibb.co.com")
-                );
 
                 return (
-                  <button key={product.id} onClick={() => addToCart(product)}
-                    className="bg-white rounded-xl p-2.5 hover:shadow-md hover:border-[#E05D43] transition-all text-left border border-gray-200 flex flex-col active:scale-[0.96]"
-                  >
-                    <div className="w-full aspect-square bg-gray-50 rounded-lg mb-2 overflow-hidden flex items-center justify-center">
-                      <img
-                        src={hasValidCustomImage ? product.image : placeholderImage}
-                        alt={product.name}
-                        loading="lazy"
-                        className={`w-full h-full object-contain p-1 ${!hasValidCustomImage ? 'grayscale opacity-40' : ''}`}
-                        onError={(e) => {
-                          const t = e.target as HTMLImageElement;
-                          t.src = placeholderImage;
-                          t.className = "w-full h-full object-contain p-1 grayscale opacity-40";
-                        }}
-                      />
-                    </div>
-                    <h3 className="font-semibold text-xs text-gray-900 line-clamp-2 leading-tight mb-1 flex-1">{product.name}</h3>
-                    <div className="text-sm font-bold text-[#E05D43]">Rp {displayPrice.toLocaleString("id-ID")}</div>
-                    <div className="text-[10px] text-gray-400 mt-0.5 truncate">{product.category}</div>
-                  </button>
+                  <ProductGridItem
+                    key={product.id}
+                    product={product}
+                    displayPrice={displayPrice}
+                    onClick={() => addToCart(product)}
+                  />
                 );
               })}
             </div>
