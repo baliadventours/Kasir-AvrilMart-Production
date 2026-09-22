@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { offlineDB } from '../../utils/offline-db';
 
 export interface QueuedTransaction {
   id: string;
@@ -13,11 +14,11 @@ const QUEUE_KEY = 'offline_transaction_queue';
 const MAX_ATTEMPTS = 3;
 
 export function useOfflineSync() {
-  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [isOnline, setIsOnline] = useState(typeof navigator !== 'undefined' ? navigator.onLine : true);
   const [isSyncing, setIsSyncing] = useState(false);
   const [queuedCount, setQueuedCount] = useState(0);
 
-  // Load queue from localStorage
+  // Load queue from localStorage and IndexedDB
   const getQueue = (): QueuedTransaction[] => {
     try {
       const stored = localStorage.getItem(QUEUE_KEY);
@@ -27,15 +28,28 @@ export function useOfflineSync() {
     }
   };
 
-  // Save queue to localStorage
+  // Save queue to localStorage and IndexedDB
   const saveQueue = (queue: QueuedTransaction[]) => {
     try {
       localStorage.setItem(QUEUE_KEY, JSON.stringify(queue));
       setQueuedCount(queue.filter(t => t.status === 'pending').length);
     } catch (error) {
-      console.error('Error saving queue:', error);
+      console.warn('Error saving queue to localStorage:', error);
     }
+    offlineDB.saveQueue(queue).catch(err => console.warn('offlineDB saveQueue error:', err));
   };
+
+  // Initialize queue on mount from IndexedDB if localStorage was empty
+  useEffect(() => {
+    offlineDB.loadQueue().then(idbQueue => {
+      if (idbQueue && idbQueue.length > 0) {
+        const local = getQueue();
+        if (local.length === 0) {
+          saveQueue(idbQueue);
+        }
+      }
+    }).catch(err => console.warn('Could not load queue from IndexedDB:', err));
+  }, []);
 
   // Add transaction to queue
   const addToQueue = (
@@ -87,7 +101,7 @@ export function useOfflineSync() {
 
   // Sync queue with server
   const syncQueue = async (
-    onSale: (items: any[], total: number, priceType: any, paymentAmount?: number) => Promise<void>,
+    onSale: (items: any[], total: number, priceType: any, paymentAmount?: number, tempSaleId?: string) => Promise<void>,
     onAddProduct: (product: any) => Promise<void>,
     onUpdateProduct: (id: string, product: any) => Promise<void>,
     onDeleteProduct: (id: string) => Promise<void>
@@ -114,7 +128,8 @@ export function useOfflineSync() {
               transaction.data.items,
               transaction.data.total,
               transaction.data.priceType,
-              transaction.data.paymentAmount
+              transaction.data.paymentAmount,
+              transaction.data.tempSaleId
             );
             break;
           case 'product_add':

@@ -321,6 +321,10 @@ export const salesAPI = {
 
   // Get all sales
   async getAll(): Promise<Sale[]> {
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      throw new Error("Offline - Tidak ada koneksi internet");
+    }
+
     const { data, error } = await supabase
       .from("sales")
       .select("*")
@@ -397,6 +401,10 @@ export const salesAPI = {
 export const settingsAPI = {
   // Get app settings (only one record should exist)
   async get(): Promise<any | null> {
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      return null;
+    }
+
     const { data, error } = await supabase
       .from("app_settings")
       .select("*")

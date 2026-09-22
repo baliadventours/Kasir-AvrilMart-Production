@@ -11,7 +11,13 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: [
-        'favicon.ico', 
+        'favicon.ico',
+        'apple-touch-icon.png',
+        'avrilmart-app-icon.png',
+        'avrilmart-logo.png',
+        'browserconfig.xml',
+        'pwa-192x192.png',
+        'pwa-512x512.png',
         'icons/icon-72x72.png',
         'icons/icon-96x96.png',
         'icons/icon-128x128.png',
@@ -87,6 +93,7 @@ export default defineConfig({
         navigateFallback: '/index.html',
         navigateFallbackDenylist: [/^\/api/],
         cleanupOutdatedCaches: true,
+        maximumFileSizeToCacheInBytes: 6 * 1024 * 1024,
       },
       devOptions: {
         enabled: true,

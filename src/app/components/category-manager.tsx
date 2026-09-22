@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Plus, Edit2, Trash2, FolderOpen, Tag } from "lucide-react";
 import { supabase } from "../../services/supabase";
+import { useLocalStorage } from "../hooks/useLocalStorage";
 
 interface Category {
   id: string;
@@ -20,11 +21,24 @@ export function CategoryManager() {
     description: "",
   });
 
+  const { saveCategories, loadCategories, loadCategoriesAsync } = useLocalStorage();
+
   useEffect(() => {
     fetchCategories();
   }, []);
 
   const fetchCategories = async () => {
+    // 1. Immediately show cached categories
+    const cached = loadCategories() || (await loadCategoriesAsync());
+    if (cached && cached.length > 0) {
+      setCategories(cached);
+    }
+
+    // 2. If offline, don't attempt network call
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      return;
+    }
+
     try {
       const { data, error } = await supabase
         .from("categories")
@@ -32,10 +46,15 @@ export function CategoryManager() {
         .order("name", { ascending: true });
 
       if (error) throw error;
-      setCategories(data || []);
+      const fetched = data || [];
+      setCategories(fetched);
+      saveCategories(fetched);
     } catch (error: any) {
-      console.error("Error fetching categories:", error);
-      setMessage({ type: "error", text: "Gagal memuat kategori" });
+      console.warn("Error fetching categories:", error);
+      // If we don't even have cached categories, show message
+      if (!cached || cached.length === 0) {
+        setMessage({ type: "error", text: "Gagal memuat kategori dari server" });
+      }
     }
   };
 

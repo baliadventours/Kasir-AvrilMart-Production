@@ -208,6 +208,26 @@ export default function App() {
 
   const handleLogin = async (email: string, password: string) => {
     setLoginLoading(true);
+    setLoginError(null);
+
+    // 🔌 If offline, check if matches cached user
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      const cachedUser = localStorage.loadUser();
+      if (cachedUser && cachedUser.email.toLowerCase() === email.trim().toLowerCase()) {
+        setUser(cachedUser);
+        setActiveMenu("pos");
+        setLoginLoading(false);
+        return;
+      } else if (cachedUser) {
+        setLoginError(`Mode Offline: Anda dapat login dengan akun tersimpan (${cachedUser.email}) saat offline.`);
+        setLoginLoading(false);
+        return;
+      } else {
+        setLoginError("Mode Offline: Belum ada akun tersimpan di perangkat ini. Harap hubungkan internet untuk login pertama kali.");
+        setLoginLoading(false);
+        return;
+      }
+    }
 
     try {
       const { session, user: authUser } = await authAPI.signIn(email, password);
@@ -226,7 +246,14 @@ export default function App() {
       }
     } catch (error: any) {
       console.error("Login error:", error);
-      setLoginError(error.message || "Terjadi kesalahan saat login");
+      // Fallback: If network failed but user exists in cache, allow offline access
+      const cachedUser = localStorage.loadUser();
+      if (cachedUser && cachedUser.email.toLowerCase() === email.trim().toLowerCase()) {
+        setUser(cachedUser);
+        setActiveMenu("pos");
+      } else {
+        setLoginError(error.message || "Terjadi kesalahan saat login");
+      }
     } finally {
       setLoginLoading(false);
     }
@@ -252,7 +279,11 @@ export default function App() {
   // ⚡ CACHE-FIRST: Show cached products instantly, then refresh in background
   const loadProductsCacheFirst = async () => {
     // 1. Show cached products immediately (zero wait)
-    const cached = localStorage.loadProducts();
+    let cached = localStorage.loadProducts();
+    if (!cached || cached.length === 0) {
+      cached = await localStorage.loadProductsAsync();
+    }
+
     if (cached && cached.length > 0) {
       setProducts(cached);
       setLoading(false); // Do not stay in loading state if cache is available
@@ -285,7 +316,7 @@ export default function App() {
       }
     } catch (error: any) {
       console.error("Error loading fresh products from server:", error);
-      const fallbackCached = localStorage.loadProducts();
+      const fallbackCached = localStorage.loadProducts() || (await localStorage.loadProductsAsync());
       if (fallbackCached && fallbackCached.length > 0) {
         setProducts(fallbackCached);
         setError(null); // Keep using cache silently without showing error toast
@@ -301,11 +332,16 @@ export default function App() {
 
   // Full product reload (used by Inventory Manager)
   const loadProducts = async () => {
-    const cached = localStorage.loadProducts();
+    const cached = localStorage.loadProducts() || (await localStorage.loadProductsAsync());
     if (cached && cached.length > 0) {
       setProducts(cached);
     } else {
       setLoading(true);
+    }
+
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      setLoading(false);
+      return;
     }
 
     try {
@@ -318,7 +354,7 @@ export default function App() {
       setError(null);
     } catch (error: any) {
       console.error("Error reloading products:", error);
-      const fallbackCached = localStorage.loadProducts();
+      const fallbackCached = localStorage.loadProducts() || (await localStorage.loadProductsAsync());
       if (fallbackCached && fallbackCached.length > 0) {
         setProducts(fallbackCached);
         setError(null);
@@ -330,11 +366,24 @@ export default function App() {
     }
   };
 
-  // ⚡ LAZY: Only load sales when the Sales or Reports tab is opened
+  // ⚡ LAZY & CACHE-FIRST: Only load sales when the Sales or Reports tab is opened
   const [salesLoaded, setSalesLoaded] = useState(false);
 
   const loadSales = async () => {
     if (salesLoaded) return; // Already loaded this session
+
+    // 1. Immediately show cached sales
+    const cachedSales = localStorage.loadSales() || (await localStorage.loadSalesAsync());
+    if (cachedSales && cachedSales.length > 0) {
+      setSales(cachedSales);
+    }
+
+    // 2. If offline, don't attempt network fetch
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      setSalesLoaded(true);
+      return;
+    }
+
     try {
       const dbSales = await salesAPI.getAll();
 
@@ -377,11 +426,23 @@ export default function App() {
   };
 
   const loadSettings = async () => {
+    // 1. Load cached settings immediately
+    const cachedSettings = localStorage.loadSettings() || (await localStorage.loadSettingsAsync());
+    if (cachedSettings) {
+      setSettings(cachedSettings);
+    }
+
+    // 2. If offline, skip network call
+    if (typeof navigator !== "undefined" && !navigator.onLine) return;
+
     try {
       const dbSettings = await settingsAPI.get();
-      setSettings(dbSettings);
+      if (dbSettings) {
+        setSettings(dbSettings);
+        localStorage.saveSettings(dbSettings);
+      }
     } catch (error: any) {
-      console.error("Error loading settings:", error);
+      console.warn("Error loading settings:", error);
       // Don't show error for settings loading - not critical
     }
   };
@@ -485,6 +546,7 @@ export default function App() {
         total,
         priceType,
         paymentAmount,
+        tempSaleId: tempSale.id,
       });
       console.log('📡 Offline mode: Transaction queued for sync');
       return; // Exit early, will sync when online
@@ -529,28 +591,66 @@ export default function App() {
         total,
         priceType,
         paymentAmount,
+        tempSaleId: tempSale.id,
       });
       
-      setError("Koneksi bermasalah. Transaksi akan disinkronkan otomatis.");
+      setError("Koneksi bermasalah. Transaksi disimpan di cache lokal & akan disinkronkan otomatis saat online.");
     } finally {
       setLoading(false);
     }
   };
 
+  const syncQueuedSale = async (
+    items: any[],
+    total: number,
+    priceType: any,
+    paymentAmount?: number,
+    tempSaleId?: string
+  ) => {
+    if (!user) return;
+    const saleItems = items.map((item) => ({
+      product_id: item.id,
+      product_name: item.name,
+      product_sku: item.sku,
+      quantity: item.quantity,
+      price: item.appliedPrice || item.priceRetail || item.price,
+    }));
+    const { sale } = await salesAPI.create(user.id, saleItems, priceType, paymentAmount);
+    if (tempSaleId) {
+      setSales((prev) =>
+        prev.map((s) =>
+          s.id === tempSaleId ? { ...s, id: sale.id, date: sale.created_at } : s
+        )
+      );
+    }
+  };
+
   const handleAutoSync = async () => {
+    if (!user) return;
     try {
       setLoading(true);
 
+      // Drain offline queue transactions first
+      if (offlineSync.queuedCount > 0) {
+        await offlineSync.syncQueue(
+          syncQueuedSale,
+          handleAddProduct,
+          handleUpdateProduct,
+          handleDeleteProduct
+        );
+      }
+
       // Use lightweight POS fetch for sync (not the heavy getAll)
       const dbProducts = await productsAPI.getForPOS();
-      const frontendProducts = dbProducts.map(dbToFrontendProduct);
-      setProducts(frontendProducts);
-      localStorage.saveProducts(frontendProducts);
+      if (dbProducts && dbProducts.length > 0) {
+        const frontendProducts = dbProducts.map(dbToFrontendProduct);
+        setProducts(frontendProducts);
+        localStorage.saveProducts(frontendProducts);
+      }
 
       setError(null);
     } catch (error: any) {
-      console.error("Error auto-syncing:", error);
-      // Don't block the UI for sync errors — cached data is still usable
+      console.warn("Auto-sync background warning:", error);
     } finally {
       setLoading(false);
     }
@@ -603,7 +703,7 @@ export default function App() {
         isSyncing={offlineSync.isSyncing}
         queuedCount={offlineSync.queuedCount}
         onRetrySync={() => offlineSync.syncQueue(
-          handleSale,
+          syncQueuedSale,
           handleAddProduct,
           handleUpdateProduct,
           handleDeleteProduct
