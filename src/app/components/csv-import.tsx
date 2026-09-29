@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Upload, Download, CheckCircle, XCircle, AlertCircle } from "lucide-react";
+import { Upload, Download, CheckCircle, XCircle, AlertCircle, X } from "lucide-react";
 import Papa from "papaparse";
 import { productsAPI } from "../../services/supabase";
 import { toast } from "sonner";
@@ -206,9 +206,21 @@ Coffee Mug,CM-003,,Kitchenware,50000,40000,30000,100`;
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-        <h2 className="text-2xl font-bold mb-4">Import Produk dari CSV</h2>
+    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-3 sm:p-4 overflow-y-auto">
+      <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[92vh] flex flex-col my-auto shadow-2xl overflow-hidden border border-gray-100">
+        {/* Pinned Header */}
+        <div className="flex justify-between items-center px-6 py-4 border-b border-gray-100 flex-shrink-0 bg-white">
+          <div>
+            <h2 className="text-xl font-bold text-gray-900">Import Produk dari CSV</h2>
+            <p className="text-xs text-gray-500">Unggah berkas spreadsheet untuk memperbarui inventori secara massal</p>
+          </div>
+          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-xl text-gray-400 hover:text-gray-700 transition-colors">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Scrollable Body */}
+        <div className="flex-1 overflow-y-auto p-6 min-h-0 space-y-6">
 
         {/* Template Download */}
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
@@ -371,11 +383,13 @@ Coffee Mug,CM-003,,Kitchenware,50000,40000,30000,100`;
           </div>
         )}
 
-        {/* Actions */}
-        <div className="flex gap-3">
+        </div>
+
+        {/* Pinned Actions Footer */}
+        <div className="flex gap-3 px-6 py-4 border-t border-gray-100 bg-white flex-shrink-0">
           <button
             onClick={onClose}
-            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100"
+            className="flex-1 px-4 py-2.5 border border-gray-300 rounded-xl hover:bg-gray-50 text-gray-700 font-medium transition-colors text-sm"
           >
             {importResult ? "Tutup" : "Batal"}
           </button>
@@ -383,7 +397,7 @@ Coffee Mug,CM-003,,Kitchenware,50000,40000,30000,100`;
             <button
               onClick={handleImport}
               disabled={!validation || !validation.valid || importing}
-              className="flex-1 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed"
+              className="flex-1 px-4 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed font-medium shadow-sm transition-colors text-sm flex items-center justify-center"
             >
               {importing ? "Importing..." : "Import Produk"}
             </button>

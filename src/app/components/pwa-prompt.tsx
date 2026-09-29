@@ -279,7 +279,7 @@ export function PWAPrompt() {
 
       {/* Step-by-Step Installation Guide Modal (PWA Guide) */}
       {showGuideModal && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 overflow-y-auto">
           {/* Backdrop */}
           <div 
             className="absolute inset-0 bg-black/60 backdrop-blur-sm"
@@ -287,9 +287,9 @@ export function PWAPrompt() {
           />
           
           {/* Modal Container */}
-          <div className="relative w-full max-w-md bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl p-6 z-10 animate-in slide-in-from-bottom-10 duration-200">
+          <div className="relative w-full max-w-md bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl p-6 z-10 my-auto max-h-[90vh] flex flex-col overflow-hidden animate-in slide-in-from-bottom-10 duration-200">
             {/* Header */}
-            <div className="flex items-center justify-between mb-4 pb-3 border-b border-gray-100">
+            <div className="flex items-center justify-between mb-4 pb-3 border-b border-gray-100 flex-shrink-0">
               <div className="flex items-center gap-2">
                 <Smartphone className="w-5 h-5 text-[#E05D43]" />
                 <h3 className="font-bold text-gray-900 text-lg">
@@ -304,6 +304,8 @@ export function PWAPrompt() {
               </button>
             </div>
 
+            {/* Scrollable Content */}
+            <div className="flex-1 overflow-y-auto min-h-0 pr-1">
             {/* Content for iOS Device */}
             {isIOS ? (
               <div className="space-y-5">
@@ -407,9 +409,10 @@ export function PWAPrompt() {
                 </div>
               </div>
             )}
+            </div>
 
             {/* Footer Close Button */}
-            <div className="mt-6 pt-3 border-t border-gray-100 flex justify-end">
+            <div className="mt-4 pt-3 border-t border-gray-100 flex justify-end flex-shrink-0">
               <button
                 onClick={() => setShowGuideModal(false)}
                 className="w-full sm:w-auto px-5 py-2.5 bg-[#E05D43] text-white rounded-xl hover:bg-[#C54D33] text-sm font-semibold transition-colors shadow-lg shadow-orange-100"

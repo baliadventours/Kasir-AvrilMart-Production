@@ -811,8 +811,8 @@ export function InventoryManager({
 
       {/* Delete All Confirmation Modal */}
       {showDeleteAllModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-end md:items-center justify-center z-50 p-0 md:p-4">
-          <div className="bg-white rounded-t-2xl md:rounded-lg p-5 md:p-6 w-full md:max-w-md" style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 1.25rem)" }}>
+        <div className="fixed inset-0 bg-black/50 flex items-end md:items-center justify-center z-50 p-0 md:p-4 overflow-y-auto">
+          <div className="bg-white rounded-t-2xl md:rounded-xl p-5 md:p-6 w-full md:max-w-md my-auto shadow-2xl max-h-[90vh] overflow-y-auto" style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 1.25rem)" }}>
             <div className="flex items-center gap-3 mb-4">
               <div className="bg-red-100 p-3 rounded-full">
                 <AlertTriangle className="w-6 h-6 text-red-600" />
@@ -869,10 +869,10 @@ export function InventoryManager({
 
       {/* Add/Edit Product Modal — full-screen sheet on mobile */}
       {showForm && (
-        <div className="fixed inset-0 bg-black/50 flex items-end md:items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black/50 flex items-end md:items-center justify-center z-50 p-0 md:p-4 overflow-y-auto">
           <div
-            className="bg-white w-full md:max-w-md md:rounded-lg rounded-t-2xl flex flex-col"
-            style={{ maxHeight: "95dvh" }}
+            className="bg-white w-full md:max-w-md md:rounded-2xl rounded-t-2xl flex flex-col my-auto shadow-2xl overflow-hidden max-h-[92vh] max-h-[92dvh]"
+            style={{ maxHeight: "92vh" }}
           >
             {/* Sticky header */}
             <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 flex-shrink-0">

@@ -63,146 +63,152 @@ export function ThermalReceipt({
   return (
     <>
       {/* Modal Overlay - Hidden when printing */}
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 print:hidden">
-        <div className="bg-white rounded-lg p-6 max-w-md w-full">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-medium text-gray-900">Struk Pembayaran</h2>
+      <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-2 sm:p-4 overflow-y-auto print:hidden">
+        <div className="bg-white rounded-2xl max-w-md w-full max-h-[92vh] flex flex-col shadow-2xl overflow-hidden my-auto border border-gray-100">
+          {/* Header (pinned at top) */}
+          <div className="flex justify-between items-center px-5 py-3.5 border-b border-gray-100 flex-shrink-0 bg-white">
+            <div>
+              <h2 className="text-base sm:text-lg font-bold text-gray-900">Struk Pembayaran</h2>
+              <p className="text-xs text-gray-400">Pratinjau struk thermal 80mm</p>
+            </div>
             <button
               onClick={onClose}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-400 hover:text-gray-700 transition-colors"
+              aria-label="Tutup"
             >
               <X className="w-5 h-5" />
             </button>
           </div>
 
-          {/* Preview of thermal receipt */}
-          <div className="border rounded-lg p-4 mb-4 bg-gray-50 max-h-96 overflow-y-auto">
-            {/* Header */}
-            <div className="text-center space-y-1 mb-4 pb-3 border-b border-dashed border-gray-400">
-              {/* Logo */}
-              {activeSettings.logo_url && (
-                <div className="flex justify-center mb-2">
-                  <img 
-                    src={activeSettings.logo_url} 
-                    alt="Logo" 
-                    className="h-16 w-auto object-contain"
-                  />
-                </div>
-              )}
-              <div className="font-bold text-base">{activeSettings.store_name}</div>
-              <div className="text-xs">{activeSettings.store_address}</div>
-              <div className="text-xs">Telp: {activeSettings.store_phone}</div>
-              {/* Header Message */}
-              {activeSettings.receipt_header && (
-                <div className="text-xs text-gray-600 italic mt-2">{activeSettings.receipt_header}</div>
-              )}
-            </div>
-
-            {/* Transaction Info */}
-            <div className="text-xs space-y-1 mb-4 pb-3 border-b border-dashed border-gray-400">
-              <div className="flex justify-between">
-                <span className="text-gray-600">Tanggal</span>
-                <span className="font-medium">
-                  {new Date(sale.created_at).toLocaleDateString("id-ID", {
-                    day: "2-digit",
-                    month: "2-digit",
-                    year: "numeric",
-                  })}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Waktu</span>
-                <span className="font-medium">
-                  {new Date(sale.created_at).toLocaleTimeString("id-ID", {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">No. Transaksi</span>
-                <span className="font-medium">{sale.receipt_number || sale.id.slice(0, 8).toUpperCase()}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Tipe</span>
-                <span className="font-medium">{sale.payment_type === "retail" ? "Eceran" : "Grosir"}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Pembayaran</span>
-                <span className="font-medium">{PAYMENT_METHOD_LABELS[paymentMethod]}</span>
-              </div>
-            </div>
-
-            {/* Items */}
-            <div className="space-y-3 mb-4 pb-3 border-b border-dashed border-gray-400">
-              {sale.items.map((item, index) => (
-                <div key={index} className="text-xs">
-                  <div className="font-semibold text-gray-900">{toTitleCase(item.product_name)}</div>
-                  <div className="flex justify-between text-gray-600 mt-1">
-                    <span>
-                      {item.quantity} x Rp {item.price.toLocaleString("id-ID")}
-                    </span>
-                    <span className="font-medium text-gray-900">Rp {item.total.toLocaleString("id-ID")}</span>
+          {/* Preview of thermal receipt (scrollable middle) */}
+          <div className="flex-1 overflow-y-auto min-h-0 p-3 sm:p-4 bg-gray-50">
+            <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+              {/* Store Header */}
+              <div className="text-center space-y-1 mb-4 pb-3 border-b border-dashed border-gray-300">
+                {/* Logo */}
+                {activeSettings.logo_url && (
+                  <div className="flex justify-center mb-2">
+                    <img 
+                      src={activeSettings.logo_url} 
+                      alt="Logo" 
+                      className="h-14 w-auto object-contain"
+                    />
                   </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Totals */}
-            <div className="space-y-2">
-              <div className="flex justify-between text-xs text-gray-600">
-                <span>Subtotal</span>
-                <span className="font-medium">Rp {subtotal.toLocaleString("id-ID")}</span>
+                )}
+                <div className="font-bold text-base text-gray-900">{activeSettings.store_name}</div>
+                <div className="text-xs text-gray-600">{activeSettings.store_address}</div>
+                <div className="text-xs text-gray-500">Telp: {activeSettings.store_phone}</div>
+                {/* Header Message */}
+                {activeSettings.receipt_header && (
+                  <div className="text-xs text-gray-600 italic mt-1.5">{activeSettings.receipt_header}</div>
+                )}
               </div>
-              {activeSettings.tax_enabled && (
+
+              {/* Transaction Info */}
+              <div className="text-xs space-y-1 mb-4 pb-3 border-b border-dashed border-gray-300">
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Tanggal</span>
+                  <span className="font-medium text-gray-900">
+                    {new Date(sale.created_at).toLocaleDateString("id-ID", {
+                      day: "2-digit",
+                      month: "2-digit",
+                      year: "numeric",
+                    })}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Waktu</span>
+                  <span className="font-medium text-gray-900">
+                    {new Date(sale.created_at).toLocaleTimeString("id-ID", {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-500">No. Transaksi</span>
+                  <span className="font-medium text-gray-900">{sale.receipt_number || sale.id.slice(0, 8).toUpperCase()}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Tipe</span>
+                  <span className="font-medium text-gray-900">{sale.payment_type === "retail" ? "Eceran" : "Grosir"}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Pembayaran</span>
+                  <span className="font-medium text-gray-900">{PAYMENT_METHOD_LABELS[paymentMethod]}</span>
+                </div>
+              </div>
+
+              {/* Items */}
+              <div className="space-y-3 mb-4 pb-3 border-b border-dashed border-gray-300">
+                {sale.items.map((item, index) => (
+                  <div key={index} className="text-xs">
+                    <div className="font-semibold text-gray-900">{toTitleCase(item.product_name)}</div>
+                    <div className="flex justify-between text-gray-600 mt-1">
+                      <span>
+                        {item.quantity} x Rp {item.price.toLocaleString("id-ID")}
+                      </span>
+                      <span className="font-medium text-gray-900">Rp {item.total.toLocaleString("id-ID")}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Totals */}
+              <div className="space-y-1.5">
                 <div className="flex justify-between text-xs text-gray-600">
-                  <span>Pajak ({activeSettings.tax_percentage}%)</span>
-                  <span className="font-medium">Rp {tax.toLocaleString("id-ID")}</span>
+                  <span>Subtotal</span>
+                  <span className="font-medium">Rp {subtotal.toLocaleString("id-ID")}</span>
                 </div>
-              )}
-              <div className="flex justify-between text-sm font-bold text-gray-900 pt-2 border-t border-gray-300">
-                <span>TOTAL</span>
-                <span>Rp {total.toLocaleString("id-ID")}</span>
-              </div>
-              
-              {/* Payment Info */}
-              {sale.payment_amount && sale.payment_amount > 0 && (
-                <>
-                  <div className="flex justify-between text-xs text-gray-600 pt-2 border-t border-dashed border-gray-300">
-                    <span>Bayar</span>
-                    <span className="font-medium">Rp {sale.payment_amount.toLocaleString("id-ID")}</span>
-                  </div>
+                {activeSettings.tax_enabled && (
                   <div className="flex justify-between text-xs text-gray-600">
-                    <span>Kembalian</span>
-                    <span className="font-medium">Rp {(sale.payment_amount - total).toLocaleString("id-ID")}</span>
+                    <span>Pajak ({activeSettings.tax_percentage}%)</span>
+                    <span className="font-medium">Rp {tax.toLocaleString("id-ID")}</span>
                   </div>
-                </>
-              )}
-            </div>
+                )}
+                <div className="flex justify-between text-sm font-bold text-gray-900 pt-2 border-t border-gray-300">
+                  <span>TOTAL</span>
+                  <span className="text-[#E05D43]">Rp {total.toLocaleString("id-ID")}</span>
+                </div>
+                
+                {/* Payment Info */}
+                {sale.payment_amount && sale.payment_amount > 0 && (
+                  <>
+                    <div className="flex justify-between text-xs text-gray-600 pt-2 border-t border-dashed border-gray-300">
+                      <span>Bayar</span>
+                      <span className="font-medium">Rp {sale.payment_amount.toLocaleString("id-ID")}</span>
+                    </div>
+                    <div className="flex justify-between text-xs text-gray-600">
+                      <span>Kembalian</span>
+                      <span className="font-medium">Rp {(sale.payment_amount - total).toLocaleString("id-ID")}</span>
+                    </div>
+                  </>
+                )}
+              </div>
 
-            {/* Footer */}
-            <div className="text-center text-xs text-gray-600 mt-4 pt-3 border-t border-dashed border-gray-400">
+              {/* Footer Message */}
               {activeSettings.receipt_footer && (
-                <div className="italic mb-2">
+                <div className="text-center text-xs text-gray-500 mt-4 pt-3 border-t border-dashed border-gray-300 italic">
                   {activeSettings.receipt_footer}
                 </div>
               )}
             </div>
           </div>
 
-          <div className="flex gap-3">
+          {/* Action buttons (pinned at bottom - always visible) */}
+          <div className="flex gap-3 px-5 py-3.5 border-t border-gray-200 bg-white flex-shrink-0">
             <button
               onClick={onClose}
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+              className="flex-1 px-4 py-2.5 border border-gray-300 rounded-xl hover:bg-gray-50 text-gray-700 font-medium transition-colors text-sm"
             >
               Tutup
             </button>
             <button
               onClick={handlePrint}
-              className="flex-1 px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 flex items-center justify-center gap-2"
+              className="flex-1 px-4 py-2.5 bg-[#E05D43] text-white rounded-xl hover:bg-[#C54D33] flex items-center justify-center gap-2 font-semibold shadow-md shadow-orange-100 transition-all text-sm active:scale-95"
             >
               <Printer className="w-4 h-4" />
-              Cetak
+              Cetak Struk
             </button>
           </div>
         </div>

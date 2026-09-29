@@ -842,7 +842,7 @@ export default function App() {
         )}
 
         {/* Page Content */}
-        <main className={activeMenu === "pos" ? "h-[100dvh] overflow-hidden" : "pt-4 pb-20 md:pb-6 px-4 md:px-6 bg-gray-50 min-h-screen"}>
+        <main className={activeMenu === "pos" ? "h-screen h-[100dvh] max-h-screen overflow-hidden" : "pt-4 pb-20 md:pb-6 px-4 md:px-6 bg-gray-50 min-h-screen"}>
           <Suspense fallback={
             <div className="flex flex-col items-center justify-center min-h-[300px] text-gray-500 gap-3">
               <div className="w-8 h-8 border-3 border-[#E05D43] border-t-transparent rounded-full animate-spin"></div>

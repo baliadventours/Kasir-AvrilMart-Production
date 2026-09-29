@@ -292,7 +292,7 @@ export function POSInterface({ products, settings, onSale }: POSInterfaceProps) 
   );
 
   const renderOrderSummary = (onPay: () => void) => (
-    <div className="border-t border-gray-200 px-4 py-4 bg-white">
+    <div className="border-t border-gray-200 px-4 py-4 bg-white flex-shrink-0">
       <div className="space-y-1.5 text-sm mb-4">
         <div className="flex justify-between text-gray-600"><span>Subtotal</span><span>Rp {subtotal.toLocaleString("id-ID")}</span></div>
         <div className="flex justify-between text-gray-600"><span>Diskon</span><span>-Rp {discount.toLocaleString("id-ID")}</span></div>
@@ -303,13 +303,13 @@ export function POSInterface({ products, settings, onSale }: POSInterfaceProps) 
       </div>
       <div className="flex gap-2">
         <button onClick={clearCart} className="flex-1 py-3 rounded-xl border-2 border-gray-300 text-gray-700 text-sm font-medium hover:bg-gray-100 transition-colors">Hapus</button>
-        <button onClick={onPay} className="flex-2 px-6 py-3 rounded-xl bg-[#E05D43] text-white text-sm font-semibold hover:bg-[#C54D33] transition-all shadow-lg shadow-orange-200">Bayar Sekarang</button>
+        <button onClick={onPay} className="flex-[2] px-6 py-3 rounded-xl bg-[#E05D43] text-white text-sm font-semibold hover:bg-[#C54D33] transition-all shadow-lg shadow-orange-200 flex items-center justify-center">Bayar Sekarang</button>
       </div>
     </div>
   );
 
   return (
-    <div className="flex h-[100dvh] bg-white overflow-hidden">
+    <div className="flex h-screen h-[100dvh] max-h-screen bg-white overflow-hidden">
 
       {/* ════ PRODUCT PANEL (always visible, full width on mobile) ════ */}
       <div className="flex-1 flex flex-col overflow-hidden min-w-0">
@@ -450,7 +450,7 @@ export function POSInterface({ products, settings, onSale }: POSInterfaceProps) 
       </div>
 
       {/* ════ DESKTOP CART SIDEBAR (hidden on mobile) ════ */}
-      <div className="hidden md:flex w-96 bg-white border-l border-gray-200 flex-col overflow-hidden flex-shrink-0">
+      <div className="hidden md:flex w-96 bg-white border-l border-gray-200 flex-col overflow-hidden flex-shrink-0 h-full">
         <div className="flex-shrink-0 px-6 py-4 border-b border-gray-200">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-gray-900">Order Aktif</h2>
@@ -461,7 +461,7 @@ export function POSInterface({ products, settings, onSale }: POSInterfaceProps) 
             <button onClick={() => setPriceType("wholesale")} className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-all ${priceType === "wholesale" ? "bg-[#E05D43] text-white" : "bg-gray-100 text-gray-700 hover:bg-gray-200"}`}>Grosir</button>
           </div>
         </div>
-        <div className="flex-1 overflow-y-auto px-4 py-3 space-y-2">
+        <div className="flex-1 overflow-y-auto px-4 py-3 space-y-2 min-h-0">
           {cart.length === 0 ? (
             <div className="text-center py-16">
               <ShoppingCart className="w-12 h-12 text-gray-200 mx-auto mb-3" />
@@ -496,9 +496,9 @@ export function POSInterface({ products, settings, onSale }: POSInterfaceProps) 
       {showCartSheet && (
         <div className="md:hidden fixed inset-0 z-50">
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowCartSheet(false)} />
-          <div className="absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl flex flex-col max-h-[90dvh] shadow-2xl">
+          <div className="absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl flex flex-col max-h-[90vh] max-h-[90dvh] shadow-2xl">
             <div className="flex justify-center pt-3 pb-1"><div className="w-10 h-1 bg-gray-300 rounded-full" /></div>
-            <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100">
+            <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100 flex-shrink-0">
               <div>
                 <h2 className="text-lg font-bold text-gray-900">Keranjang</h2>
                 <p className="text-xs text-gray-400">{cartCount} item dipilih</p>
@@ -507,7 +507,7 @@ export function POSInterface({ products, settings, onSale }: POSInterfaceProps) 
                 <X className="w-5 h-5 text-gray-600" />
               </button>
             </div>
-            <div className="flex-1 overflow-y-auto px-4 py-3 space-y-2">
+            <div className="flex-1 overflow-y-auto px-4 py-3 space-y-2 min-h-0">
               {cart.map(renderCartItem)}
               <div ref={cartEndRef} />
             </div>
@@ -519,102 +519,129 @@ export function POSInterface({ products, settings, onSale }: POSInterfaceProps) 
 
       {/* ════ CHECKOUT MODAL ════ */}
       {showCheckout && (
-        <div className="fixed inset-0 bg-black/50 flex items-end md:items-center justify-center z-50 p-0 md:p-4">
-          <div className="bg-white rounded-t-3xl md:rounded-2xl p-6 w-full md:max-w-md max-h-[95dvh] overflow-y-auto">
-            <div className="flex justify-between items-center mb-5">
-              <h2 className="text-xl font-bold text-gray-900">Pembayaran</h2>
-              <button onClick={() => setShowCheckout(false)} className="p-2 hover:bg-gray-100 rounded-xl">
+        <div className="fixed inset-0 bg-black/50 flex items-end md:items-center justify-center z-50 p-0 md:p-4 overflow-y-auto">
+          <div className="bg-white rounded-t-3xl md:rounded-2xl w-full md:max-w-md max-h-[92vh] max-h-[92dvh] flex flex-col my-auto shadow-2xl overflow-hidden">
+            {/* Pinned Header */}
+            <div className="flex justify-between items-center px-5 py-4 border-b border-gray-100 flex-shrink-0 bg-white">
+              <div>
+                <h2 className="text-lg md:text-xl font-bold text-gray-900">Pembayaran</h2>
+                <p className="text-xs text-gray-500">Pilih metode & nominal pembayaran</p>
+              </div>
+              <button onClick={() => setShowCheckout(false)} className="p-2 hover:bg-gray-100 rounded-xl transition-colors text-gray-500">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            {/* Total summary */}
-            <div className="space-y-2 mb-5 p-4 bg-gray-50 rounded-2xl text-sm">
-              <div className="flex justify-between text-gray-600">
-                <span>Subtotal</span>
-                <span>Rp {subtotal.toLocaleString("id-ID")}</span>
-              </div>
-              <div className="flex justify-between text-lg font-bold text-gray-900 pt-2 border-t border-gray-200">
-                <span>Total</span>
-                <span className="text-[#E05D43]">Rp {total.toLocaleString("id-ID")}</span>
-              </div>
-            </div>
-
-            {/* Payment amount input */}
-            <div className="mb-4">
-              <label className="block text-sm font-medium mb-2 text-gray-700">Jumlah Bayar</label>
-              <input
-                type="number"
-                value={paymentAmount}
-                onChange={(e) => setPaymentAmount(e.target.value)}
-                placeholder="0"
-                className="w-full px-4 py-3.5 border border-gray-300 rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#E05D43] focus:border-transparent text-xl font-bold"
-              />
-              {parseFloat(paymentAmount) >= total && (
-                <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-xl">
-                  <p className="text-sm text-green-700">
-                    Kembalian: <span className="font-bold">Rp {change.toLocaleString("id-ID")}</span>
-                  </p>
+            {/* Scrollable Form Body */}
+            <div className="flex-1 overflow-y-auto p-5 space-y-4 min-h-0">
+              {/* Total summary */}
+              <div className="space-y-1.5 p-4 bg-gray-50 rounded-2xl text-sm border border-gray-100">
+                <div className="flex justify-between text-gray-600">
+                  <span>Subtotal</span>
+                  <span>Rp {subtotal.toLocaleString("id-ID")}</span>
                 </div>
-              )}
-              {parseFloat(paymentAmount) > 0 && parseFloat(paymentAmount) < total && (
-                <p className="mt-2 text-sm text-red-500">Jumlah bayar kurang dari total</p>
-              )}
-            </div>
+                {discount > 0 && (
+                  <div className="flex justify-between text-gray-600">
+                    <span>Diskon</span>
+                    <span>-Rp {discount.toLocaleString("id-ID")}</span>
+                  </div>
+                )}
+                <div className="flex justify-between text-base md:text-lg font-bold text-gray-900 pt-2 border-t border-gray-200">
+                  <span>Total Tagihan</span>
+                  <span className="text-[#E05D43]">Rp {total.toLocaleString("id-ID")}</span>
+                </div>
+              </div>
 
-            {/* Quick amount */}
-            <div className="grid grid-cols-4 gap-2 mb-5">
-              {[20000, 50000, 100000, 200000].map((amount) => (
-                <button
-                  key={amount}
-                  onClick={() => setPaymentAmount(amount.toString())}
-                  className="py-2.5 border border-gray-200 rounded-xl text-xs font-semibold text-gray-700 hover:border-[#E05D43] hover:text-[#E05D43] hover:bg-orange-50 transition-colors"
-                >
-                  {amount >= 1000 ? `${(amount / 1000).toFixed(0)}k` : amount}
-                </button>
-              ))}
-            </div>
+              {/* Payment amount input */}
+              <div>
+                <label className="block text-sm font-semibold mb-1.5 text-gray-700">Jumlah Bayar</label>
+                <input
+                  type="number"
+                  value={paymentAmount}
+                  onChange={(e) => setPaymentAmount(e.target.value)}
+                  placeholder="0"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#E05D43] focus:border-transparent text-xl font-bold bg-white"
+                />
+                {parseFloat(paymentAmount) >= total && (
+                  <div className="mt-2.5 p-3 bg-green-50 border border-green-200 rounded-xl">
+                    <p className="text-sm text-green-800">
+                      Kembalian: <span className="font-bold text-green-900">Rp {change.toLocaleString("id-ID")}</span>
+                    </p>
+                  </div>
+                )}
+                {parseFloat(paymentAmount) > 0 && parseFloat(paymentAmount) < total && (
+                  <p className="mt-1.5 text-xs text-red-500 font-medium">Jumlah bayar kurang Rp {(total - parseFloat(paymentAmount)).toLocaleString("id-ID")}</p>
+                )}
+              </div>
 
-            {/* Payment method */}
-            <div className="mb-5">
-              <label className="block text-sm font-medium mb-2 text-gray-700">Metode Pembayaran</label>
-              <div className="grid grid-cols-3 gap-2">
-                {(["cash", "qris", "transfer", "credit_card", "debit_card"] as const).map((method) => {
-                  const labels: Record<string, string> = {
-                    cash: "Tunai", qris: "QRIS", transfer: "Transfer",
-                    credit_card: "Kredit", debit_card: "Debit",
-                  };
-                  return (
+              {/* Quick amount */}
+              <div>
+                <span className="block text-xs font-medium text-gray-500 mb-1.5">Uang Pas & Pecahan:</span>
+                <div className="grid grid-cols-4 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setPaymentAmount(total.toString())}
+                    className="py-2 border border-[#E05D43] bg-orange-50 text-[#E05D43] rounded-xl text-xs font-bold hover:bg-orange-100 transition-colors"
+                  >
+                    Uang Pas
+                  </button>
+                  {[50000, 100000, 200000].map((amount) => (
                     <button
-                      key={method}
-                      onClick={() => setPaymentMethod(method)}
-                      className={`py-2.5 rounded-xl text-xs font-medium transition-all border ${
-                        paymentMethod === method
-                          ? "bg-[#E05D43] text-white border-[#E05D43]"
-                          : "bg-white text-gray-700 border-gray-200 hover:border-[#E05D43]"
-                      }`}
+                      key={amount}
+                      type="button"
+                      onClick={() => setPaymentAmount(amount.toString())}
+                      className="py-2 border border-gray-200 rounded-xl text-xs font-semibold text-gray-700 hover:border-[#E05D43] hover:text-[#E05D43] hover:bg-orange-50 transition-colors"
                     >
-                      {labels[method]}
+                      {amount >= 1000 ? `${(amount / 1000).toFixed(0)}k` : amount}
                     </button>
-                  );
-                })}
+                  ))}
+                </div>
+              </div>
+
+              {/* Payment method */}
+              <div>
+                <label className="block text-sm font-semibold mb-2 text-gray-700">Metode Pembayaran</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {(["cash", "qris", "transfer", "credit_card", "debit_card"] as const).map((method) => {
+                    const labels: Record<string, string> = {
+                      cash: "Tunai", qris: "QRIS", transfer: "Transfer",
+                      credit_card: "Kredit", debit_card: "Debit",
+                    };
+                    return (
+                      <button
+                        key={method}
+                        type="button"
+                        onClick={() => setPaymentMethod(method)}
+                        className={`py-2.5 rounded-xl text-xs font-medium transition-all border ${
+                          paymentMethod === method
+                            ? "bg-[#E05D43] text-white border-[#E05D43] shadow-sm"
+                            : "bg-white text-gray-700 border-gray-200 hover:border-[#E05D43]"
+                        }`}
+                      >
+                        {labels[method]}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             </div>
 
-            {/* Action buttons */}
-            <div className="flex gap-3">
+            {/* Pinned Action buttons (ALWAYS VISIBLE AT BOTTOM) */}
+            <div className="p-4 md:p-5 border-t border-gray-100 bg-white flex gap-3 flex-shrink-0">
               <button
+                type="button"
                 onClick={() => setShowCheckout(false)}
-                className="flex-1 px-4 py-3.5 border-2 border-gray-200 rounded-2xl hover:bg-gray-50 font-medium text-gray-700"
+                className="flex-1 px-4 py-3 border border-gray-300 rounded-xl hover:bg-gray-50 font-medium text-gray-700 transition-colors text-sm"
               >
                 Batal
               </button>
               <button
+                type="button"
                 onClick={completeSale}
                 disabled={parseFloat(paymentAmount) < total}
-                className="flex-1 px-4 py-3.5 bg-[#E05D43] text-white rounded-2xl hover:bg-[#C54D33] disabled:opacity-40 disabled:cursor-not-allowed font-bold shadow-lg shadow-orange-200 transition-all"
+                className="flex-[2] px-4 py-3 bg-[#E05D43] text-white rounded-xl hover:bg-[#C54D33] disabled:opacity-40 disabled:cursor-not-allowed font-bold shadow-md shadow-orange-200 transition-all text-sm flex items-center justify-center"
               >
-                Selesai
+                Selesai Transaksi
               </button>
             </div>
             <div style={{ paddingBottom: 'env(safe-area-inset-bottom)' }} />
@@ -629,16 +656,16 @@ export function POSInterface({ products, settings, onSale }: POSInterfaceProps) 
 
       {/* ════ CATEGORY MENU MODAL ════ */}
       {showCategoryMenu && (
-        <div className="fixed inset-0 bg-black/50 flex items-end md:items-center justify-center z-50 p-0 md:p-4">
-          <div className="bg-white rounded-t-3xl md:rounded-2xl p-6 w-full md:max-w-md max-h-[80dvh] flex flex-col">
-            <div className="flex justify-between items-center mb-5">
-              <h2 className="text-xl font-bold text-gray-900">Pilih Kategori</h2>
-              <button onClick={() => setShowCategoryMenu(false)} className="p-2 hover:bg-gray-100 rounded-xl">
-                <X className="w-5 h-5" />
+        <div className="fixed inset-0 bg-black/50 flex items-end md:items-center justify-center z-50 p-0 md:p-4 overflow-y-auto">
+          <div className="bg-white rounded-t-3xl md:rounded-2xl p-5 md:p-6 w-full md:max-w-md max-h-[85vh] max-h-[85dvh] flex flex-col my-auto shadow-2xl overflow-hidden">
+            <div className="flex justify-between items-center mb-4 flex-shrink-0">
+              <h2 className="text-lg md:text-xl font-bold text-gray-900">Pilih Kategori</h2>
+              <button onClick={() => setShowCategoryMenu(false)} className="p-2 hover:bg-gray-100 rounded-xl transition-colors">
+                <X className="w-5 h-5 text-gray-600" />
               </button>
             </div>
-            <div className="flex-1 overflow-y-auto">
-              <div className="grid grid-cols-2 gap-3">
+            <div className="flex-1 overflow-y-auto min-h-0 pr-1">
+              <div className="grid grid-cols-2 gap-2.5">
                 {categories.map((category) => {
                   const count =
                     category === "All"
@@ -648,14 +675,14 @@ export function POSInterface({ products, settings, onSale }: POSInterfaceProps) 
                     <button
                       key={category}
                       onClick={() => { setSelectedCategory(category); setShowCategoryMenu(false); }}
-                      className={`p-4 rounded-2xl text-left border-2 transition-all ${
+                      className={`p-3.5 rounded-xl text-left border transition-all ${
                         selectedCategory === category
-                          ? "bg-[#E05D43] text-white border-[#E05D43]"
+                          ? "bg-[#E05D43] text-white border-[#E05D43] shadow-sm"
                           : "bg-white text-gray-900 border-gray-200 hover:border-[#E05D43] hover:bg-orange-50"
                       }`}
                     >
                       <div className="font-semibold text-sm mb-0.5 truncate">{category}</div>
-                      <div className={`text-xs ${selectedCategory === category ? "text-white/75" : "text-gray-400"}`}>
+                      <div className={`text-xs ${selectedCategory === category ? "text-white/80" : "text-gray-400"}`}>
                         {count} produk
                       </div>
                     </button>
@@ -663,10 +690,10 @@ export function POSInterface({ products, settings, onSale }: POSInterfaceProps) 
                 })}
               </div>
             </div>
-            <div className="mt-4 pt-4 border-t border-gray-100">
+            <div className="mt-4 pt-3 border-t border-gray-100 flex-shrink-0">
               <button
                 onClick={() => setShowCategoryMenu(false)}
-                className="w-full py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-2xl font-medium transition-colors"
+                className="w-full py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-medium transition-colors text-sm"
               >
                 Tutup
               </button>
