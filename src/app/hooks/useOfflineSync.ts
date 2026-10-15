@@ -16,7 +16,26 @@ const MAX_ATTEMPTS = 3;
 export function useOfflineSync() {
   const [isOnline, setIsOnline] = useState(typeof navigator !== 'undefined' ? navigator.onLine : true);
   const [isSyncing, setIsSyncing] = useState(false);
-  const [queuedCount, setQueuedCount] = useState(0);
+  const [queuedCount, setQueuedCount] = useState(() => {
+    try {
+      const stored = localStorage.getItem(QUEUE_KEY);
+      if (stored) {
+        const queue: QueuedTransaction[] = JSON.parse(stored);
+        return queue.filter(t => t.status === 'pending').length;
+      }
+    } catch {}
+    return 0;
+  });
+  const [failedCount, setFailedCount] = useState(() => {
+    try {
+      const stored = localStorage.getItem(QUEUE_KEY);
+      if (stored) {
+        const queue: QueuedTransaction[] = JSON.parse(stored);
+        return queue.filter(t => t.status === 'failed').length;
+      }
+    } catch {}
+    return 0;
+  });
 
   // Load queue from localStorage and IndexedDB
   const getQueue = (): QueuedTransaction[] => {
@@ -33,6 +52,7 @@ export function useOfflineSync() {
     try {
       localStorage.setItem(QUEUE_KEY, JSON.stringify(queue));
       setQueuedCount(queue.filter(t => t.status === 'pending').length);
+      setFailedCount(queue.filter(t => t.status === 'failed').length);
     } catch (error) {
       console.warn('Error saving queue to localStorage:', error);
     }
@@ -205,6 +225,7 @@ export function useOfflineSync() {
     isOnline,
     isSyncing,
     queuedCount,
+    failedCount,
     addToQueue,
     removeFromQueue,
     syncQueue,

@@ -716,7 +716,9 @@ export default function App() {
           handleUpdateProduct,
           handleDeleteProduct
         )}
-        failedCount={offlineSync.getFailedTransactions().length}
+        failedCount={offlineSync.failedCount ?? offlineSync.getFailedTransactions().length}
+        onDismissFailed={() => offlineSync.clearFailedTransactions()}
+        onViewHistory={() => setActiveMenu("sales")}
       />
 
       {/* Desktop Sidebar */}
