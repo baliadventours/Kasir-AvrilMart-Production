@@ -56,7 +56,7 @@ export const ProductCard = memo(({ product, priceType, onClick }: ProductCardPro
 
 ProductCard.displayName = "ProductCard";
 
-// 🔥 Grid View Card - Clean centered typography card with hover background effect (no images)
+// 🔥 Grid View Card - Proportional, clean, modern centered card with smooth hover effect
 interface ProductGridCardProps {
   product: Product;
   priceType: "retail" | "wholesale";
@@ -67,35 +67,20 @@ export const ProductGridCard = memo(({ product, priceType, onClick }: ProductGri
   const retailPrice = product.priceRetail || product.price_retail || 0;
   const wholesalePrice = product.priceWholesale || product.price_wholesale || 0;
   const displayPrice = priceType === "retail" ? retailPrice : wholesalePrice;
-  const isLowStock = product.stock < 10;
 
   return (
     <button
       onClick={() => onClick(product)}
-      className="bg-white hover:bg-[#FFF0EC] rounded-xl p-4 sm:p-5 min-h-[140px] sm:min-h-[155px] shadow-sm hover:shadow-md border border-gray-200 hover:border-[#E05D43] transition-all duration-200 text-center flex flex-col items-center justify-between active:scale-[0.97] group cursor-pointer relative overflow-hidden"
+      className="bg-white hover:bg-[#FFF5F2] rounded-xl px-3.5 py-3.5 min-h-[98px] sm:min-h-[108px] shadow-[0_1px_3px_rgba(0,0,0,0.04)] hover:shadow-md border border-gray-200/90 hover:border-[#E05D43]/60 transition-all duration-150 text-center flex flex-col items-center justify-center active:scale-[0.98] group cursor-pointer"
     >
-      {/* Top Category Label */}
-      <div className="w-full text-[11px] font-semibold uppercase tracking-wider text-gray-400 group-hover:text-[#E05D43] transition-colors truncate">
-        {product.category || "Umum"}
+      <h3 className="font-semibold text-[13px] sm:text-sm text-gray-800 group-hover:text-gray-950 leading-snug line-clamp-2 transition-colors">
+        {product.name}
+      </h3>
+      <div className="text-sm sm:text-[15px] font-bold text-[#E05D43] group-hover:text-[#C54D33] tabular-nums tracking-tight mt-1.5 transition-colors">
+        Rp {displayPrice.toLocaleString("id-ID")}
       </div>
-
-      {/* Centered Product Name & Price */}
-      <div className="my-auto py-2 w-full flex flex-col items-center justify-center">
-        <h3 className="font-bold text-base sm:text-lg text-gray-900 group-hover:text-[#9E2F19] leading-snug line-clamp-2 mb-2 transition-colors">
-          {product.name}
-        </h3>
-        <div className="text-lg sm:text-xl font-extrabold text-[#E05D43] group-hover:text-[#C54D33] tabular-nums tracking-tight transition-colors">
-          Rp {displayPrice.toLocaleString("id-ID")}
-        </div>
-      </div>
-
-      {/* Bottom SKU & Stock Info */}
-      <div className="w-full pt-2 border-t border-gray-100 group-hover:border-[#E05D43]/25 flex items-center justify-center gap-1.5 text-xs text-gray-500 group-hover:text-gray-700 transition-colors">
-        <span className="font-mono truncate max-w-[55%]">{product.sku}</span>
-        <span>·</span>
-        <span className={isLowStock ? "text-red-600 font-semibold" : "text-emerald-600 font-medium"}>
-          Stok {product.stock}
-        </span>
+      <div className="w-full text-[10px] font-medium text-gray-400 group-hover:text-[#E05D43]/75 tracking-wide uppercase mt-1 truncate transition-colors">
+        {product.category}
       </div>
     </button>
   );
