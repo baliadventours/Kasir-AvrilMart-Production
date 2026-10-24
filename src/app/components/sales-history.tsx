@@ -14,57 +14,71 @@ export function SalesHistory({ sales }: SalesHistoryProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterPeriod, setFilterPeriod] = useState<"all" | "today" | "week" | "month" | "year">("all");
   
-  // 🔥 NEW: Filter sales by search and period
-  const filteredSales = sales.filter((sale) => {
-    // Search by receipt number (transaction ID)
-    const txnId = sale.id.slice(0, 8).toUpperCase();
-    const matchesSearch = searchTerm === "" || 
-      txnId.includes(searchTerm.toUpperCase()) ||
-      sale.id.includes(searchTerm.toLowerCase());
-    
-    // Filter by time period
-    const saleDate = new Date(sale.date);
-    const now = new Date();
-    let matchesPeriod = true;
-    
-    if (filterPeriod === "today") {
-      matchesPeriod = saleDate.toDateString() === now.toDateString();
-    } else if (filterPeriod === "week") {
-      const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-      matchesPeriod = saleDate >= weekAgo;
-    } else if (filterPeriod === "month") {
-      matchesPeriod = saleDate.getMonth() === now.getMonth() && 
-                      saleDate.getFullYear() === now.getFullYear();
-    } else if (filterPeriod === "year") {
-      matchesPeriod = saleDate.getFullYear() === now.getFullYear();
-    }
-    
-    return matchesSearch && matchesPeriod;
-  });
+  // 🔥 NEW: Filter sales by search and period (with safe null guards)
+  const filteredSales = (Array.isArray(sales) ? sales : [])
+    .filter((sale) => {
+      if (!sale) return false;
+      const safeId = String(sale.id || "");
+      // Search by receipt number (transaction ID)
+      const txnId = safeId.slice(0, 8).toUpperCase();
+      const matchesSearch =
+        searchTerm === "" ||
+        txnId.includes(searchTerm.toUpperCase()) ||
+        safeId.toLowerCase().includes(searchTerm.toLowerCase());
 
-  const totalRevenue = filteredSales.reduce((sum, sale) => sum + sale.total, 0);
+      // Filter by time period
+      const saleDate = new Date(sale.date || Date.now());
+      const now = new Date();
+      let matchesPeriod = true;
+
+      if (filterPeriod === "today") {
+        matchesPeriod = saleDate.toDateString() === now.toDateString();
+      } else if (filterPeriod === "week") {
+        const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        matchesPeriod = saleDate >= weekAgo;
+      } else if (filterPeriod === "month") {
+        matchesPeriod =
+          saleDate.getMonth() === now.getMonth() &&
+          saleDate.getFullYear() === now.getFullYear();
+      } else if (filterPeriod === "year") {
+        matchesPeriod = saleDate.getFullYear() === now.getFullYear();
+      }
+
+      return matchesSearch && matchesPeriod;
+    })
+    .sort((a, b) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime());
+
+  const totalRevenue = filteredSales.reduce((sum, sale) => sum + (Number(sale.total) || 0), 0);
   const totalItems = filteredSales.reduce(
-    (sum, sale) => sum + sale.items.reduce((s, item) => s + item.quantity, 0),
+    (sum, sale) =>
+      sum +
+      (Array.isArray(sale.items) ? sale.items : []).reduce(
+        (s, item) => s + (Number(item?.quantity) || 0),
+        0
+      ),
     0
   );
 
   const today = new Date().toDateString();
-  const todaySales = filteredSales.filter((sale) => new Date(sale.date).toDateString() === today);
-  const todayRevenue = todaySales.reduce((sum, sale) => sum + sale.total, 0);
+  const todaySales = filteredSales.filter(
+    (sale) => new Date(sale.date || Date.now()).toDateString() === today
+  );
+  const todayRevenue = todaySales.reduce((sum, sale) => sum + (Number(sale.total) || 0), 0);
 
   const exportToCSV = () => {
     const csvHeader = "No Transaksi,Tanggal,Waktu,Tipe Harga,Item,Jumlah,Total\n";
     const csvContent = filteredSales
       .map((sale) => {
-        const date = new Date(sale.date);
+        const date = new Date(sale.date || Date.now());
         const dateStr = date.toLocaleDateString("id-ID");
         const timeStr = date.toLocaleTimeString("id-ID");
-        const txnId = sale.id.slice(0, 8).toUpperCase();
+        const txnId = String(sale.id || "").slice(0, 8).toUpperCase();
         const priceType = sale.priceType === "retail" ? "Eceran" : "Grosir";
-        const items = sale.items.map(item => `${item.name} (x${item.quantity})`).join("; ");
-        const totalQty = sale.items.reduce((sum, item) => sum + item.quantity, 0);
-        
-        return `${txnId},${dateStr},${timeStr},${priceType},"${items}",${totalQty},${sale.total}`;
+        const safeItems = Array.isArray(sale.items) ? sale.items : [];
+        const items = safeItems.map((item) => `${item?.name || "Produk"} (x${item?.quantity || 0})`).join("; ");
+        const totalQty = safeItems.reduce((sum, item) => sum + (Number(item?.quantity) || 0), 0);
+
+        return `${txnId},${dateStr},${timeStr},${priceType},"${items}",${totalQty},${Number(sale.total) || 0}`;
       })
       .join("\n");
 
@@ -80,21 +94,22 @@ export function SalesHistory({ sales }: SalesHistoryProps) {
   };
 
   const handleReprintReceipt = (sale: Sale) => {
+    const safeItems = Array.isArray(sale.items) ? sale.items : [];
     // Convert Sale to receipt format
     const receiptSale = {
-      id: sale.id,
-      total: sale.total,
+      id: String(sale.id || ""),
+      total: Number(sale.total) || 0,
       payment_type: (sale.priceType === "retail" ? "retail" : "wholesale") as "retail" | "wholesale",
       payment_amount: sale.payment_amount,
-      created_at: sale.date,
-      items: sale.items.map(item => ({
-        product_name: item.name,
-        quantity: item.quantity,
-        price: item.appliedPrice,
-        total: item.appliedPrice * item.quantity
-      }))
+      created_at: sale.date || new Date().toISOString(),
+      items: safeItems.map((item) => ({
+        product_name: item?.name || "Produk",
+        quantity: Number(item?.quantity) || 1,
+        price: Number(item?.appliedPrice) || 0,
+        total: (Number(item?.appliedPrice) || 0) * (Number(item?.quantity) || 1),
+      })),
     };
-    
+
     setSelectedSale(receiptSale);
   };
 
@@ -263,63 +278,61 @@ export function SalesHistory({ sales }: SalesHistoryProps) {
                   </td>
                 </tr>
               ) : (
-                filteredSales
-                  .slice()
-                  .reverse()
-                  .map((sale) => {
-                    const totalQty = sale.items.reduce((sum, item) => sum + item.quantity, 0);
-                    const txnId = sale.id.slice(0, 8).toUpperCase();
-                    return (
-                      <tr key={sale.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4">
-                          <button
-                            onClick={() => handleReprintReceipt(sale)}
-                            className="font-mono font-semibold text-[#E05D43] hover:text-[#C54D33] hover:underline cursor-pointer"
-                          >
-                            {txnId}
-                          </button>
-                        </td>
-                        <td className="px-6 py-4 text-gray-600 text-sm">
-                          {new Date(sale.date).toLocaleString("id-ID")}
-                        </td>
-                        <td className="px-6 py-4">
-                          <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                            sale.priceType === "retail" 
-                              ? "bg-blue-100 text-blue-700" 
-                              : "bg-green-100 text-green-700"
-                          }`}>
-                            {sale.priceType === "retail" ? "Eceran" : "Grosir"}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="space-y-1">
-                            {sale.items.map((item, idx) => (
-                              <div key={idx} className="text-sm text-gray-700">
-                                {item.name} (x{item.quantity})
-                              </div>
-                            ))}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4">
-                          <span className="px-2 py-1 bg-gray-100 rounded text-sm font-medium">
-                            {totalQty} items
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 text-right font-bold text-green-600">
-                          Rp {sale.total.toLocaleString("id-ID")}
-                        </td>
-                        <td className="px-6 py-4 text-center">
-                          <button
-                            onClick={() => handleReprintReceipt(sale)}
-                            className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors inline-flex items-center justify-center"
-                            title="Cetak Ulang Nota"
-                          >
-                            <Printer className="w-4 h-4" />
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  })
+                filteredSales.map((sale) => {
+                  const safeItems = Array.isArray(sale.items) ? sale.items : [];
+                  const totalQty = safeItems.reduce((sum, item) => sum + (Number(item?.quantity) || 0), 0);
+                  const txnId = String(sale.id || "").slice(0, 8).toUpperCase();
+                  return (
+                    <tr key={sale.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4">
+                        <button
+                          onClick={() => handleReprintReceipt(sale)}
+                          className="font-mono font-semibold text-[#E05D43] hover:text-[#C54D33] hover:underline cursor-pointer"
+                        >
+                          {txnId}
+                        </button>
+                      </td>
+                      <td className="px-6 py-4 text-gray-600 text-sm">
+                        {new Date(sale.date || Date.now()).toLocaleString("id-ID")}
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
+                          sale.priceType === "retail" 
+                            ? "bg-blue-100 text-blue-700" 
+                            : "bg-green-100 text-green-700"
+                        }`}>
+                          {sale.priceType === "retail" ? "Eceran" : "Grosir"}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="space-y-1">
+                          {safeItems.map((item, idx) => (
+                            <div key={idx} className="text-sm text-gray-700">
+                              {item?.name || "Produk"} (x{item?.quantity || 0})
+                            </div>
+                          ))}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="px-2 py-1 bg-gray-100 rounded text-sm font-medium">
+                          {totalQty} items
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-right font-bold text-green-600">
+                        Rp {(Number(sale.total) || 0).toLocaleString("id-ID")}
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <button
+                          onClick={() => handleReprintReceipt(sale)}
+                          className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors inline-flex items-center justify-center"
+                          title="Cetak Ulang Nota"
+                        >
+                          <Printer className="w-4 h-4" />
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>

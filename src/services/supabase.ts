@@ -320,15 +320,20 @@ export const salesAPI = {
   },
 
   // Get all sales
-  async getAll(): Promise<Sale[]> {
+  async getAll(limit = 500): Promise<Sale[]> {
     if (typeof navigator !== "undefined" && !navigator.onLine) {
       throw new Error("Offline - Tidak ada koneksi internet");
     }
 
-    const { data, error } = await supabase
-      .from("sales")
-      .select("*")
-      .order("created_at", { ascending: false });
+    const { data, error } = await withTimeout(
+      supabase
+        .from("sales")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(limit),
+      12000,
+      "Koneksi timeout saat mengambil data penjualan"
+    );
 
     if (error) {
       console.error("Error fetching sales:", error);
@@ -337,23 +342,82 @@ export const salesAPI = {
     return data || [];
   },
 
-  // Get sale with items
+  // Get all sales with their items in a single query (prevents N+1 HTTP flood / ERR_INSUFFICIENT_RESOURCES)
+  async getAllWithItems(limit = 500): Promise<Array<Sale & { sale_items: SaleItem[] }>> {
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      throw new Error("Offline - Tidak ada koneksi internet");
+    }
+
+    // 1. Primary path: Single relational PostgREST query
+    const { data, error } = await withTimeout(
+      supabase
+        .from("sales")
+        .select("*, sale_items(*)")
+        .order("created_at", { ascending: false })
+        .limit(limit),
+      15000,
+      "Koneksi timeout saat mengambil riwayat penjualan"
+    );
+
+    if (!error && data) {
+      return data as Array<Sale & { sale_items: SaleItem[] }>;
+    }
+
+    // 2. Fallback path: 2 batch queries joined in memory (still 0 N+1 requests)
+    console.warn("Using batch fallback for sales + sale_items:", error?.message);
+    const salesData = await this.getAll(limit);
+    if (salesData.length === 0) return [];
+
+    const saleIds = salesData.map((s) => s.id);
+    const { data: itemsData, error: itemsError } = await withTimeout(
+      supabase
+        .from("sale_items")
+        .select("*")
+        .in("sale_id", saleIds),
+      15000,
+      "Koneksi timeout saat mengambil detail item penjualan"
+    );
+
+    if (itemsError) {
+      console.warn("Warning fetching batch sale_items:", itemsError);
+    }
+
+    const itemsBySaleId = new Map<string, SaleItem[]>();
+    (itemsData || []).forEach((item: SaleItem) => {
+      const list = itemsBySaleId.get(item.sale_id) || [];
+      list.push(item);
+      itemsBySaleId.set(item.sale_id, list);
+    });
+
+    return salesData.map((sale) => ({
+      ...sale,
+      sale_items: itemsBySaleId.get(sale.id) || [],
+    }));
+  },
+
+  // Get single sale with items
   async getWithItems(saleId: string): Promise<{ sale: Sale; items: SaleItem[] }> {
-    const { data: sale, error: saleError } = await supabase
-      .from("sales")
-      .select("*")
-      .eq("id", saleId)
-      .single();
+    const { data: sale, error: saleError } = await withTimeout(
+      supabase
+        .from("sales")
+        .select("*")
+        .eq("id", saleId)
+        .single(),
+      10000
+    );
 
     if (saleError) {
       console.error("Error fetching sale:", saleError);
       throw saleError;
     }
 
-    const { data: items, error: itemsError } = await supabase
-      .from("sale_items")
-      .select("*")
-      .eq("sale_id", saleId);
+    const { data: items, error: itemsError } = await withTimeout(
+      supabase
+        .from("sale_items")
+        .select("*")
+        .eq("sale_id", saleId),
+      10000
+    );
 
     if (itemsError) {
       console.error("Error fetching sale items:", itemsError);

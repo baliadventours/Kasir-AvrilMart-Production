@@ -28,10 +28,12 @@ export function Reports({ sales }: ReportsProps) {
 
   const filterSalesByPeriod = () => {
     const now = selectedDate;
-    
-    return sales.filter((sale) => {
-      const saleDate = new Date(sale.date);
-      
+    const safeSales = Array.isArray(sales) ? sales : [];
+
+    return safeSales.filter((sale) => {
+      if (!sale) return false;
+      const saleDate = new Date(sale.date || Date.now());
+
       if (period === "harian") {
         return (
           saleDate.getDate() === now.getDate() &&
@@ -53,21 +55,23 @@ export function Reports({ sales }: ReportsProps) {
   const generateReport = () => {
     const filteredSales = filterSalesByPeriod();
 
-    const totalPenjualan = filteredSales.reduce((sum, sale) => sum + sale.total, 0);
+    const totalPenjualan = filteredSales.reduce((sum, sale) => sum + (Number(sale.total) || 0), 0);
     const totalTransaksi = filteredSales.length;
     const totalEceran = filteredSales
       .filter((s) => s.priceType === "retail")
-      .reduce((sum, sale) => sum + sale.total, 0);
+      .reduce((sum, sale) => sum + (Number(sale.total) || 0), 0);
     const totalGrosir = filteredSales
       .filter((s) => s.priceType === "wholesale")
-      .reduce((sum, sale) => sum + sale.total, 0);
+      .reduce((sum, sale) => sum + (Number(sale.total) || 0), 0);
     const rataRataTransaksi = totalTransaksi > 0 ? totalPenjualan / totalTransaksi : 0;
 
     // Calculate best selling products
     const productCount: { [key: string]: number } = {};
     filteredSales.forEach((sale) => {
-      sale.items.forEach((item) => {
-        productCount[item.name] = (productCount[item.name] || 0) + item.quantity;
+      const safeItems = Array.isArray(sale.items) ? sale.items : [];
+      safeItems.forEach((item) => {
+        if (!item?.name) return;
+        productCount[item.name] = (productCount[item.name] || 0) + (Number(item.quantity) || 0);
       });
     });
 

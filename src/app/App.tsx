@@ -280,6 +280,8 @@ export default function App() {
       setAccessToken(null);
       setProducts([]);
       setSales([]);
+      setSalesLoaded(false);
+      isLoadingSalesRef.current = false;
       setActiveMenu("pos");
     }
   };
@@ -376,62 +378,73 @@ export default function App() {
 
   // ⚡ LAZY & CACHE-FIRST: Only load sales when the Sales or Reports tab is opened
   const [salesLoaded, setSalesLoaded] = useState(false);
+  const isLoadingSalesRef = useRef(false);
 
   const loadSales = async () => {
-    if (salesLoaded) return; // Already loaded this session
-
-    // 1. Immediately show cached sales
-    const cachedSales = localStorage.loadSales() || (await localStorage.loadSalesAsync());
-    if (cachedSales && cachedSales.length > 0) {
-      setSales(cachedSales);
-    }
-
-    // 2. If offline, don't attempt network fetch
-    if (typeof navigator !== "undefined" && !navigator.onLine) {
-      setSalesLoaded(true);
-      return;
-    }
+    if (salesLoaded || isLoadingSalesRef.current) return;
+    isLoadingSalesRef.current = true;
 
     try {
-      const dbSales = await salesAPI.getAll();
+      // 1. Immediately show cached sales
+      const cachedSales = localStorage.loadSales() || (await localStorage.loadSalesAsync());
+      if (cachedSales && cachedSales.length > 0) {
+        setSales(cachedSales);
+      }
 
-      // Convert to frontend format
-      const frontendSales: Sale[] = await Promise.all(
-        dbSales.map(async (sale) => {
-          const { items } = await salesAPI.getWithItems(sale.id);
+      // 2. If offline, don't attempt network fetch
+      if (typeof navigator !== "undefined" && !navigator.onLine) {
+        setSalesLoaded(true);
+        return;
+      }
 
-          const cartItems: CartItem[] = items.map((item) => ({
-            id: item.product_id,
-            name: item.product_name,
-            sku: item.product_sku,
-            priceRetail: item.price,
-            priceWholesale: item.price,
-            price_retail: item.price,
-            price_wholesale: item.price,
-            stock: 0,
-            category: "",
-            quantity: item.quantity,
-            priceType: sale.price_type,
-            appliedPrice: item.price,
-          }));
+      // 3. Fetch sales + items in a single relational query (eliminates N+1 HTTP flood)
+      const dbSalesWithItems = await salesAPI.getAllWithItems(500);
 
-          return {
-            id: sale.id,
-            date: sale.created_at,
-            items: cartItems,
-            total: sale.total,
-            priceType: sale.price_type,
-          };
-        })
-      );
+      const frontendSales: Sale[] = dbSalesWithItems.map((sale) => {
+        const items = Array.isArray(sale.sale_items) ? sale.sale_items : [];
+        const cartItems: CartItem[] = items.map((item) => ({
+          id: item.product_id,
+          name: item.product_name || "Produk",
+          sku: item.product_sku || "-",
+          priceRetail: Number(item.price) || 0,
+          priceWholesale: Number(item.price) || 0,
+          price_retail: Number(item.price) || 0,
+          price_wholesale: Number(item.price) || 0,
+          stock: 0,
+          category: "",
+          quantity: Number(item.quantity) || 1,
+          priceType: sale.price_type || "retail",
+          appliedPrice: Number(item.price) || 0,
+        }));
+
+        return {
+          id: String(sale.id),
+          date: sale.created_at || new Date().toISOString(),
+          items: cartItems,
+          total: Number(sale.total) || 0,
+          priceType: sale.price_type || "retail",
+          payment_amount: sale.payment_amount ? Number(sale.payment_amount) : undefined,
+        };
+      });
 
       setSales(frontendSales);
       localStorage.saveSales(frontendSales);
       setSalesLoaded(true);
     } catch (error: any) {
       console.error("Error loading sales:", error);
+      // Mark loaded so failed network doesn't cause endless retry loops
+      setSalesLoaded(true);
+    } finally {
+      isLoadingSalesRef.current = false;
     }
   };
+
+  // Trigger sales load safely in useEffect when user opens Sales History or Reports tab
+  useEffect(() => {
+    if (user && (activeMenu === "sales" || activeMenu === "reports") && !salesLoaded) {
+      loadSales();
+    }
+  }, [activeMenu, user, salesLoaded]);
 
   const loadSettings = async () => {
     // 1. Load cached settings immediately
@@ -861,8 +874,8 @@ export default function App() {
                 onRefresh={loadProducts}
               />
             )}
-            {activeMenu === "sales" && canAccessSales && (() => { if (!salesLoaded) loadSales(); return <SalesHistory sales={sales} />; })()}
-            {activeMenu === "reports" && canAccessSales && (() => { if (!salesLoaded) loadSales(); return <Reports sales={sales} />; })()}
+            {activeMenu === "sales" && canAccessSales && <SalesHistory sales={sales} />}
+            {activeMenu === "reports" && canAccessSales && <Reports sales={sales} />}
 
             {activeMenu === "users" && canAccessUsers && (
               <UserManagement accessToken={accessToken || ""} />
