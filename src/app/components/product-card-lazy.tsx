@@ -56,7 +56,7 @@ export const ProductCard = memo(({ product, priceType, onClick }: ProductCardPro
 
 ProductCard.displayName = "ProductCard";
 
-// 🔥 Grid View Card dengan Lazy Loading Image & safe icon fallback
+// 🔥 Grid View Card - Clean centered typography card with hover background effect (no images)
 interface ProductGridCardProps {
   product: Product;
   priceType: "retail" | "wholesale";
@@ -64,71 +64,38 @@ interface ProductGridCardProps {
 }
 
 export const ProductGridCard = memo(({ product, priceType, onClick }: ProductGridCardProps) => {
-  const [imageError, setImageError] = useState(false);
   const retailPrice = product.priceRetail || product.price_retail || 0;
   const wholesalePrice = product.priceWholesale || product.price_wholesale || 0;
   const displayPrice = priceType === "retail" ? retailPrice : wholesalePrice;
-
-  const hasValidImage = Boolean(
-    product.image &&
-    product.image.trim() !== "" &&
-    !product.image.includes("avrilmart-app-icon") &&
-    !product.image.includes("i.ibb.co.com")
-  );
+  const isLowStock = product.stock < 10;
 
   return (
     <button
       onClick={() => onClick(product)}
-      className="bg-white rounded-lg p-4 hover:shadow-lg hover:border-[#E05D43] transition-all text-left border border-gray-200 flex flex-col"
+      className="bg-white hover:bg-[#FFF0EC] rounded-xl p-4 sm:p-5 min-h-[140px] sm:min-h-[155px] shadow-sm hover:shadow-md border border-gray-200 hover:border-[#E05D43] transition-all duration-200 text-center flex flex-col items-center justify-between active:scale-[0.97] group cursor-pointer relative overflow-hidden"
     >
-      {/* Product Image with lazy loading & clean fallback */}
-      <div className="w-full aspect-square bg-gray-50 rounded-lg mb-3 overflow-hidden flex items-center justify-center">
-        {hasValidImage && !imageError ? (
-          <img
-            src={product.image}
-            alt={product.name}
-            loading="lazy"
-            decoding="async"
-            className="w-full h-full object-contain p-1"
-            onError={() => setImageError(true)}
-          />
-        ) : (
-          <div className="w-full h-full flex flex-col items-center justify-center text-stone-300">
-            <Package className="w-8 h-8 stroke-[1.5]" />
-            <span className="text-[9px] uppercase tracking-wider text-stone-400 mt-1 font-mono">
-              {product.sku}
-            </span>
-          </div>
-        )}
+      {/* Top Category Label */}
+      <div className="w-full text-[11px] font-semibold uppercase tracking-wider text-gray-400 group-hover:text-[#E05D43] transition-colors truncate">
+        {product.category || "Umum"}
       </div>
-      
-      {/* Product Info */}
-      <div className="flex-1">
-        <h3 className="font-semibold text-sm text-gray-900 mb-1 line-clamp-2 min-h-[2.5rem]">
+
+      {/* Centered Product Name & Price */}
+      <div className="my-auto py-2 w-full flex flex-col items-center justify-center">
+        <h3 className="font-bold text-base sm:text-lg text-gray-900 group-hover:text-[#9E2F19] leading-snug line-clamp-2 mb-2 transition-colors">
           {product.name}
         </h3>
-        <p className="text-xs text-gray-500 mb-2 truncate">
-          SKU: {product.sku}
-        </p>
-        {product.barcode && (
-          <p className="text-xs text-gray-400 mb-2 flex items-center gap-1 truncate">
-            <Scan className="w-3 h-3 flex-shrink-0" />
-            {product.barcode}
-          </p>
-        )}
-        <div className={`text-xs font-medium mb-3 ${product.stock < 10 ? 'text-red-600' : 'text-green-600'}`}>
-          Stok: {product.stock}
-        </div>
-      </div>
-      
-      {/* Price & Category */}
-      <div>
-        <div className="text-lg font-bold text-[#E05D43] mb-1">
+        <div className="text-lg sm:text-xl font-extrabold text-[#E05D43] group-hover:text-[#C54D33] tabular-nums tracking-tight transition-colors">
           Rp {displayPrice.toLocaleString("id-ID")}
         </div>
-        <div className="text-xs text-gray-400 truncate">
-          {product.category}
-        </div>
+      </div>
+
+      {/* Bottom SKU & Stock Info */}
+      <div className="w-full pt-2 border-t border-gray-100 group-hover:border-[#E05D43]/25 flex items-center justify-center gap-1.5 text-xs text-gray-500 group-hover:text-gray-700 transition-colors">
+        <span className="font-mono truncate max-w-[55%]">{product.sku}</span>
+        <span>·</span>
+        <span className={isLowStock ? "text-red-600 font-semibold" : "text-emerald-600 font-medium"}>
+          Stok {product.stock}
+        </span>
       </div>
     </button>
   );

@@ -13,7 +13,7 @@ const placeholderImage = "/avrilmart-app-icon.png";
 const INITIAL_PRODUCTS_DISPLAY = 32;
 const PRODUCTS_LOAD_STEP = 32;
 
-// 🔥 Memoized Product Grid Item that safely handles missing/broken images without loop or blinking
+// 🔥 Memoized Product Grid Item - Clean centered typography card with hover background effect (no images)
 const ProductGridItem = memo(({
   product,
   displayPrice,
@@ -23,50 +23,36 @@ const ProductGridItem = memo(({
   displayPrice: number;
   onClick: () => void;
 }) => {
-  const [imageError, setImageError] = useState(false);
-
-  // Check if image is an actual custom valid image URL (not empty, not broken domain, not self-referential)
-  const hasCustomUrl = Boolean(
-    product.image &&
-    product.image.trim() !== "" &&
-    !product.image.includes("avrilmart-app-icon") &&
-    !product.image.includes("i.ibb.co.com")
-  );
+  const isLowStock = product.stock < 10;
 
   return (
     <button
       onClick={onClick}
-      className="bg-white rounded-xl p-2.5 hover:shadow-md hover:border-[#E05D43] transition-all text-left border border-gray-200 flex flex-col active:scale-[0.96] group"
+      className="bg-white hover:bg-[#FFF0EC] rounded-xl p-4 sm:p-5 min-h-[140px] sm:min-h-[155px] shadow-sm hover:shadow-md border border-gray-200 hover:border-[#E05D43] transition-all duration-200 text-center flex flex-col items-center justify-between active:scale-[0.97] group cursor-pointer relative overflow-hidden"
     >
-      <div className="w-full aspect-square bg-gray-50 rounded-lg mb-2 overflow-hidden flex items-center justify-center relative">
-        {hasCustomUrl && !imageError ? (
-          <img
-            src={product.image}
-            alt={product.name}
-            loading="lazy"
-            decoding="async"
-            className="w-full h-full object-contain p-1 transition-opacity duration-200"
-            onError={() => {
-              // Mark error once, immediately and cleanly switches to the local icon/placeholder
-              setImageError(true);
-            }}
-          />
-        ) : (
-          <div className="w-full h-full flex flex-col items-center justify-center p-2 text-stone-300 group-hover:text-[#E05D43]/60 transition-colors">
-            <Package className="w-8 h-8 stroke-[1.5]" />
-            <span className="text-[9px] uppercase tracking-wider text-stone-400 mt-1 font-mono truncate max-w-[90%]">
-              {product.sku}
-            </span>
-          </div>
-        )}
+      {/* Top Category Label */}
+      <div className="w-full text-[11px] font-semibold uppercase tracking-wider text-gray-400 group-hover:text-[#E05D43] transition-colors truncate">
+        {product.category || "Umum"}
       </div>
-      <h3 className="font-semibold text-xs text-gray-900 line-clamp-2 leading-tight mb-1 flex-1">
-        {product.name}
-      </h3>
-      <div className="text-sm font-bold text-[#E05D43]">
-        Rp {displayPrice.toLocaleString("id-ID")}
+
+      {/* Centered Product Name & Price */}
+      <div className="my-auto py-2 w-full flex flex-col items-center justify-center">
+        <h3 className="font-bold text-base sm:text-lg text-gray-900 group-hover:text-[#9E2F19] leading-snug line-clamp-2 mb-2 transition-colors">
+          {product.name}
+        </h3>
+        <div className="text-lg sm:text-xl font-extrabold text-[#E05D43] group-hover:text-[#C54D33] tabular-nums tracking-tight transition-colors">
+          Rp {displayPrice.toLocaleString("id-ID")}
+        </div>
       </div>
-      <div className="text-[10px] text-gray-400 mt-0.5 truncate">{product.category}</div>
+
+      {/* Bottom SKU & Stock Info */}
+      <div className="w-full pt-2 border-t border-gray-100 group-hover:border-[#E05D43]/25 flex items-center justify-center gap-1.5 text-xs text-gray-500 group-hover:text-gray-700 transition-colors">
+        <span className="font-mono truncate max-w-[55%]">{product.sku}</span>
+        <span>·</span>
+        <span className={isLowStock ? "text-red-600 font-semibold" : "text-emerald-600 font-medium"}>
+          Stok {product.stock}
+        </span>
+      </div>
     </button>
   );
 });
