@@ -76,3 +76,61 @@ export interface StockMovement {
   total_items: number;
   total_value?: number;
 }
+
+export interface ExpenseRecord {
+  id: string;
+  date: string;
+  category: string;
+  description: string;
+  amount: number;
+  payment_method: "cash" | "transfer" | "qris";
+  user_name: string;
+}
+
+export interface ShiftCashEntry {
+  id: string;
+  time: string;
+  type: "in" | "out";
+  amount: number;
+  reason: string;
+}
+
+export interface CashierShift {
+  id: string;
+  cashier_name: string;
+  opened_at: string;
+  closed_at?: string;
+  status: "open" | "closed";
+  starting_cash: number;
+  cash_in: number;
+  cash_out: number;
+  cash_entries: ShiftCashEntry[];
+  sales_total: number;
+  sales_count: number;
+  expected_cash: number;
+  actual_cash?: number;
+  variance?: number;
+  notes?: string;
+}
+
+export interface DebtPayment {
+  id: string;
+  date: string;
+  amount: number;
+  note?: string;
+}
+
+export interface DebtRecord {
+  id: string;
+  type: "receivable" | "payable"; // receivable = Piutang/Kasbon Pelanggan, payable = Hutang Supplier
+  party_name: string;
+  phone?: string;
+  reference_no?: string;
+  created_at: string;
+  due_date?: string;
+  total_amount: number;
+  paid_amount: number;
+  status: "unpaid" | "partial" | "paid";
+  notes?: string;
+  payments: DebtPayment[];
+}

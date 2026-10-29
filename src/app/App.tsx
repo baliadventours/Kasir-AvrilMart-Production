@@ -17,6 +17,7 @@ import { Toaster } from "sonner";
 // ⚡ Code-split heavy management views to keep initial load lightweight & fast
 const InventoryManager = lazy(() => import("./components/inventory-manager").then(m => ({ default: m.InventoryManager })));
 const StockManagement = lazy(() => import("./components/stock-management").then(m => ({ default: m.StockManagement })));
+const Bookkeeping = lazy(() => import("./components/bookkeeping").then(m => ({ default: m.Bookkeeping })));
 const Reports = lazy(() => import("./components/reports").then(m => ({ default: m.Reports })));
 const SalesHistory = lazy(() => import("./components/sales-history").then(m => ({ default: m.SalesHistory })));
 const UserManagement = lazy(() => import("./components/user-management").then(m => ({ default: m.UserManagement })));
@@ -40,7 +41,7 @@ export default function App() {
   const [user, setUser] = useState<UserData | null>(null);
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [activeMenu, setActiveMenu] = useState<
-    "pos" | "inventory" | "stock_management" | "sales" | "reports" | "users" | "categories" | "settings"
+    "pos" | "inventory" | "stock_management" | "sales" | "reports" | "bookkeeping" | "users" | "categories" | "settings"
   >("pos");
   const [products, setProducts] = useState<Product[]>([]);
   const [sales, setSales] = useState<Sale[]>([]);
@@ -440,9 +441,13 @@ export default function App() {
     }
   };
 
-  // Trigger sales load safely in useEffect when user opens Sales History or Reports tab
+  // Trigger sales load safely in useEffect when user opens Sales History, Reports, or Bookkeeping tab
   useEffect(() => {
-    if (user && (activeMenu === "sales" || activeMenu === "reports") && !salesLoaded) {
+    if (
+      user &&
+      (activeMenu === "sales" || activeMenu === "reports" || activeMenu === "bookkeeping") &&
+      !salesLoaded
+    ) {
       loadSales();
     }
   }, [activeMenu, user, salesLoaded]);
@@ -708,6 +713,7 @@ export default function App() {
     { id: "categories", label: "Kategori", emoji: "🏷️", allowCashier: false },
     { id: "sales", label: "Riwayat Penjualan", emoji: "📊", allowCashier: true },
     { id: "reports", label: "Laporan", emoji: "📄", allowCashier: false },
+    { id: "bookkeeping", label: "Pembukuan & Kas", emoji: "💰", allowCashier: true },
     { id: "users", label: "Pengguna", emoji: "👥", allowCashier: false },
     { id: "settings", label: "Pengaturan", emoji: "⚙️", allowCashier: false },
   ].filter((item) => user.role === "admin" || item.allowCashier);
@@ -887,6 +893,15 @@ export default function App() {
             )}
             {activeMenu === "sales" && canAccessSales && <SalesHistory sales={sales} />}
             {activeMenu === "reports" && canAccessSales && <Reports sales={sales} />}
+            {activeMenu === "bookkeeping" && (
+              <Bookkeeping
+                products={products}
+                sales={sales}
+                userName={user.name}
+                userRole={user.role}
+                settings={settings}
+              />
+            )}
 
             {activeMenu === "users" && canAccessUsers && (
               <UserManagement accessToken={accessToken || ""} />
