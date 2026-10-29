@@ -48,3 +48,31 @@ export interface AppSettings {
   created_at?: string;
   updated_at?: string;
 }
+
+export type StockMovementType = "restock" | "transfer_out" | "transfer_in" | "opname";
+
+export interface StockMovementItem {
+  product_id: string;
+  product_name: string;
+  product_sku: string;
+  stock_before: number;
+  quantity_change: number; // positive for add, negative for deduct
+  stock_after: number;
+  price_modal?: number;
+  reason?: string;
+}
+
+export interface StockMovement {
+  id: string;
+  reference_no: string;
+  type: StockMovementType;
+  date: string;
+  user_name: string;
+  supplier_name?: string;
+  source_location?: string;
+  destination_location?: string;
+  notes?: string;
+  items: StockMovementItem[];
+  total_items: number;
+  total_value?: number;
+}

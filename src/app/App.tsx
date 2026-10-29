@@ -16,6 +16,7 @@ import { Toaster } from "sonner";
 
 // ⚡ Code-split heavy management views to keep initial load lightweight & fast
 const InventoryManager = lazy(() => import("./components/inventory-manager").then(m => ({ default: m.InventoryManager })));
+const StockManagement = lazy(() => import("./components/stock-management").then(m => ({ default: m.StockManagement })));
 const Reports = lazy(() => import("./components/reports").then(m => ({ default: m.Reports })));
 const SalesHistory = lazy(() => import("./components/sales-history").then(m => ({ default: m.SalesHistory })));
 const UserManagement = lazy(() => import("./components/user-management").then(m => ({ default: m.UserManagement })));
@@ -39,7 +40,7 @@ export default function App() {
   const [user, setUser] = useState<UserData | null>(null);
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [activeMenu, setActiveMenu] = useState<
-    "pos" | "inventory" | "sales" | "reports" | "users" | "categories" | "settings"
+    "pos" | "inventory" | "stock_management" | "sales" | "reports" | "users" | "categories" | "settings"
   >("pos");
   const [products, setProducts] = useState<Product[]>([]);
   const [sales, setSales] = useState<Sale[]>([]);
@@ -506,7 +507,7 @@ export default function App() {
       const dbUpdates = frontendToDbProduct(updates);
       const updatedProduct = await productsAPI.update(id, dbUpdates);
       const frontendProduct = dbToFrontendProduct(updatedProduct);
-      setProducts(products.map((p) => (p.id === id ? frontendProduct : p)));
+      setProducts((prev) => prev.map((p) => (p.id === id ? frontendProduct : p)));
       setError(null);
     } catch (error: any) {
       console.error("Error updating product:", error);
@@ -703,6 +704,7 @@ export default function App() {
   const allMenuItems = [
     { id: "pos", label: "Kasir", emoji: "🛒", allowCashier: true },
     { id: "inventory", label: "Inventori", emoji: "📦", allowCashier: false },
+    { id: "stock_management", label: "Mutasi & Opname", emoji: "📋", allowCashier: false },
     { id: "categories", label: "Kategori", emoji: "🏷️", allowCashier: false },
     { id: "sales", label: "Riwayat Penjualan", emoji: "📊", allowCashier: true },
     { id: "reports", label: "Laporan", emoji: "📄", allowCashier: false },
@@ -872,6 +874,15 @@ export default function App() {
                 onUpdateProduct={handleUpdateProduct}
                 onDeleteProduct={handleDeleteProduct}
                 onRefresh={loadProducts}
+              />
+            )}
+            {activeMenu === "stock_management" && canAccessInventory && (
+              <StockManagement
+                products={products}
+                userName={user.name}
+                settings={settings}
+                onUpdateProduct={handleUpdateProduct}
+                onRefreshProducts={loadProducts}
               />
             )}
             {activeMenu === "sales" && canAccessSales && <SalesHistory sales={sales} />}
