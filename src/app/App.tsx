@@ -542,9 +542,26 @@ export default function App() {
     items: CartItem[],
     total: number,
     priceType: "retail" | "wholesale",
-    paymentAmount?: number
+    paymentAmount?: number,
+    paymentMethod?: "cash" | "credit_card" | "debit_card" | "qris" | "transfer",
+    customer?: { id?: string; name?: string; phone?: string }
   ) => {
     if (!user) return;
+
+    const saveCustomerMeta = (saleId: string) => {
+      if (!customer?.name && !customer?.phone) return;
+      try {
+        const key = "avrilmart_sales_meta_v1";
+        const existing = JSON.parse(window.localStorage.getItem(key) || "{}");
+        existing[saleId] = {
+          ...(existing[saleId] || {}),
+          customer_id: customer.id,
+          customer_name: customer.name,
+          customer_phone: customer.phone,
+        };
+        window.localStorage.setItem(key, JSON.stringify(existing));
+      } catch {}
+    };
 
     // Update stock optimistically (in memory)
     const updatedProducts = products.map(product => {
@@ -563,7 +580,13 @@ export default function App() {
       items,
       total,
       priceType,
+      payment_amount: paymentAmount,
+      payment_method: paymentMethod,
+      customer_id: customer?.id,
+      customer_name: customer?.name,
+      customer_phone: customer?.phone,
     };
+    saveCustomerMeta(tempSale.id);
     setSales([tempSale, ...sales]);
 
     // If offline, queue the transaction
@@ -594,6 +617,7 @@ export default function App() {
 
       // Create sale in database
       const { sale } = await salesAPI.create(user.id, saleItems, priceType, paymentAmount);
+      saveCustomerMeta(String(sale.id));
 
       // Reload products to get updated stock from server
       await loadProducts();
@@ -605,6 +629,11 @@ export default function App() {
         items,
         total: sale.total,
         priceType: sale.price_type,
+        payment_amount: paymentAmount,
+        payment_method: paymentMethod,
+        customer_id: customer?.id,
+        customer_name: customer?.name,
+        customer_phone: customer?.phone,
       };
       setSales([newSale, ...sales.filter(s => s.id !== tempSale.id)]);
 
@@ -624,6 +653,140 @@ export default function App() {
       setError("Koneksi bermasalah. Transaksi disimpan di cache lokal & akan disinkronkan otomatis saat online.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Retur & Void handler: restores stock to inventory, logs stock movement, and updates sale
+  const handleRefundOrVoidSale = async (
+    targetSale: Sale,
+    mode: "void" | "partial",
+    returnedItems: Array<{
+      product_id: string;
+      product_name: string;
+      product_sku: string;
+      quantity: number;
+      price: number;
+    }>,
+    reason: string
+  ) => {
+    // 1. Restore stock in memory & record stock movement
+    const movementItems: any[] = [];
+    const nextProducts = products.map((p) => {
+      const ret = returnedItems.find(
+        (r) => r.product_id === p.id || r.product_sku === p.sku || r.product_name === p.name
+      );
+      if (!ret) return p;
+      const before = Number(p.stock) || 0;
+      const after = before + ret.quantity;
+      movementItems.push({
+        product_id: p.id,
+        product_name: p.name,
+        product_sku: p.sku,
+        stock_before: before,
+        quantity_change: ret.quantity,
+        stock_after: after,
+        price_modal: p.priceModal || p.price_modal || 0,
+        reason: `${mode === "void" ? "Void Nota" : "Retur Barang"} #${String(targetSale.id).slice(0, 8).toUpperCase()}: ${reason}`,
+      });
+      return { ...p, stock: after };
+    });
+
+    setProducts(nextProducts);
+    localStorage.saveProducts(nextProducts);
+
+    // 2. Log into Stock Card (avrilmart_stock_movements_v1)
+    if (movementItems.length > 0) {
+      try {
+        const rawMov = window.localStorage.getItem("avrilmart_stock_movements_v1");
+        const list = rawMov ? JSON.parse(rawMov) : [];
+        const newMovement = {
+          id: `mov_${Date.now()}`,
+          reference_no: `RET-${new Date().toISOString().slice(0, 10).replace(/-/g, "")}-${Math.floor(100 + Math.random() * 900)}`,
+          type: "restock",
+          date: new Date().toISOString(),
+          user_name: user?.name || "Admin",
+          notes: `${mode === "void" ? "Void Transaksi" : "Retur Sebagian"} #${String(targetSale.id).slice(0, 8).toUpperCase()} — ${reason}`,
+          items: movementItems,
+          total_items: movementItems.reduce((s, i) => s + i.quantity_change, 0),
+        };
+        window.localStorage.setItem("avrilmart_stock_movements_v1", JSON.stringify([newMovement, ...list]));
+      } catch (e) {
+        console.warn("Could not save stock movement log:", e);
+      }
+    }
+
+    // 3. Update product stock in Supabase in parallel
+    if (offlineSync.isOnline) {
+      await Promise.allSettled(
+        movementItems.map((m) =>
+          productsAPI.update(m.product_id, { stock: m.stock_after })
+        )
+      );
+    }
+
+    // 4. Update sales state & sync to Supabase
+    const refundedAmount = returnedItems.reduce((s, i) => s + i.quantity * i.price, 0);
+
+    if (mode === "void") {
+      setSales((prev) =>
+        prev.map((s) =>
+          s.id === targetSale.id
+            ? {
+                ...s,
+                status: "voided",
+                refunded_amount: targetSale.total,
+                refund_reason: reason,
+              }
+            : s
+        )
+      );
+      if (offlineSync.isOnline) {
+        await salesAPI.deleteSale(targetSale.id).catch(() => null);
+      }
+    } else {
+      // Partial refund: deduct returned quantities and reduce sale total
+      const updatedItems = (targetSale.items || [])
+        .map((item) => {
+          const ret = returnedItems.find(
+            (r) => r.product_id === item.id || r.product_name === item.name
+          );
+          if (!ret) return item;
+          return { ...item, quantity: Math.max(0, item.quantity - ret.quantity) };
+        })
+        .filter((i) => i.quantity > 0);
+
+      const newTotal = Math.max(0, (Number(targetSale.total) || 0) - refundedAmount);
+
+      setSales((prev) =>
+        prev.map((s) =>
+          s.id === targetSale.id
+            ? {
+                ...s,
+                items: updatedItems,
+                total: newTotal,
+                status: "partially_refunded",
+                refunded_amount: (s.refunded_amount || 0) + refundedAmount,
+                refund_reason: reason,
+              }
+            : s
+        )
+      );
+
+      if (offlineSync.isOnline) {
+        await salesAPI
+          .updateSaleAfterRefund(
+            targetSale.id,
+            newTotal,
+            updatedItems.map((i) => ({
+              product_id: i.id,
+              product_name: i.name,
+              product_sku: i.sku,
+              quantity: i.quantity,
+              price: i.appliedPrice,
+            }))
+          )
+          .catch(() => null);
+      }
     }
   };
 
@@ -891,7 +1054,14 @@ export default function App() {
                 onRefreshProducts={loadProducts}
               />
             )}
-            {activeMenu === "sales" && canAccessSales && <SalesHistory sales={sales} />}
+            {activeMenu === "sales" && canAccessSales && (
+              <SalesHistory
+                sales={sales}
+                settings={settings}
+                userRole={user.role}
+                onRefundOrVoidSale={handleRefundOrVoidSale}
+              />
+            )}
             {activeMenu === "reports" && canAccessSales && <Reports sales={sales} />}
             {activeMenu === "bookkeeping" && (
               <Bookkeeping

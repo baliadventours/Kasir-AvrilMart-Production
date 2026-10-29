@@ -456,6 +456,50 @@ export const salesAPI = {
 
     return summary;
   },
+
+  // Void / Delete sale and its sale_items
+  async deleteSale(saleId: string): Promise<void> {
+    if (!saleId || saleId.startsWith("temp_")) return;
+    await supabase.from("sale_items").delete().eq("sale_id", saleId);
+    const { error } = await supabase.from("sales").delete().eq("id", saleId);
+    if (error) {
+      console.warn("Warning deleting sale in Supabase:", error);
+    }
+  },
+
+  // Partial refund: update sale total & replace sale_items with remaining items
+  async updateSaleAfterRefund(
+    saleId: string,
+    newTotal: number,
+    remainingItems: Array<{
+      product_id: string;
+      product_name: string;
+      product_sku: string;
+      quantity: number;
+      price: number;
+    }>
+  ): Promise<void> {
+    if (!saleId || saleId.startsWith("temp_")) return;
+    const subtotal = remainingItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
+    await supabase
+      .from("sales")
+      .update({ total: newTotal, subtotal })
+      .eq("id", saleId);
+
+    await supabase.from("sale_items").delete().eq("sale_id", saleId);
+    if (remainingItems.length > 0) {
+      const rows = remainingItems.map((item) => ({
+        sale_id: saleId,
+        product_id: item.product_id,
+        product_name: item.product_name,
+        product_sku: item.product_sku,
+        quantity: item.quantity,
+        price: item.price,
+        subtotal: item.price * item.quantity,
+      }));
+      await supabase.from("sale_items").insert(rows);
+    }
+  },
 };
 
 // ===================================

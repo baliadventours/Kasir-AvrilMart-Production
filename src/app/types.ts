@@ -31,6 +31,34 @@ export interface Sale {
   payment_amount?: number;
   receipt_number?: string;
   payment_method?: "cash" | "credit_card" | "debit_card" | "qris" | "transfer";
+  customer_id?: string;
+  customer_name?: string;
+  customer_phone?: string;
+  status?: "completed" | "voided" | "partially_refunded";
+  refunded_amount?: number;
+  refund_reason?: string;
+  refunded_at?: string;
+}
+
+export interface Customer {
+  id: string;
+  name: string;
+  phone: string;
+  type: "retail" | "wholesale";
+  address?: string;
+  notes?: string;
+  created_at: string;
+}
+
+export interface HeldOrder {
+  id: string;
+  label: string;
+  customer_id?: string;
+  customer_name?: string;
+  customer_phone?: string;
+  items: CartItem[];
+  priceType: "retail" | "wholesale";
+  created_at: string;
 }
 
 export interface AppSettings {
@@ -49,7 +77,7 @@ export interface AppSettings {
   updated_at?: string;
 }
 
-export type StockMovementType = "restock" | "transfer_out" | "transfer_in" | "opname";
+export type StockMovementType = "restock" | "transfer_out" | "transfer_in" | "opname" | "return_in";
 
 export interface StockMovementItem {
   product_id: string;
